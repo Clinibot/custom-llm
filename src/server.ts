@@ -260,6 +260,8 @@ wsInstance.app.ws(
 // Start Server
 // ============================================================
 
-app.listen(port, () => {
-    console.log(`🚀 Retell Custom LLM server listening on port ${port}`);
+app.listen(port, "0.0.0.0", () => {
+    console.log(`🚀 IA Al Teléfono server listening on port ${port}`);
+    console.log(`📡 Node Version: ${process.version}`);
+    console.log(`🌍 Environment: ${process.env.NODE_ENV || 'production'}`);
 });
