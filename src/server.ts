@@ -129,7 +129,12 @@ app.delete("/api/agents/:id", async (req: Request, res: Response) => {
     }
 });
 
-// Serve index.html for all other routes (SPA behavior)
+// Serve index.html for the root
+app.get("/", (_req: Request, res: Response) => {
+    res.sendFile(path.join(__dirname, "../public", "index.html"));
+});
+
+// Serve index.html for all other routes
 app.get("*", (_req: Request, res: Response) => {
     res.sendFile(path.join(__dirname, "../public", "index.html"));
 });
