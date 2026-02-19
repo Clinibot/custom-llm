@@ -34,6 +34,10 @@ export class LlmOpenAiClient {
         const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY || "";
         this.supabase = createClient(supabaseUrl, supabaseKey);
 
+        if (!process.env.OPENAI_API_KEY) {
+            console.error("[LlmOpenAiClient] CRITICAL: OPENAI_API_KEY is missing from environment.");
+        }
+
         // Default values
         this.systemPrompt = "";
         this.greeting = "";
@@ -139,11 +143,13 @@ export class LlmOpenAiClient {
 
         if (request.interaction_type === "update_only") {
             if (request.turntaking === "agent_turn") {
-                console.log("[Protocol] Retell expects a response despite update_only (agent_turn).");
+                console.log(`[${request.response_id}] [Protocol] Agent turn detected in update_only. Continuing.`);
             } else {
                 return;
             }
         }
+
+        console.log(`[${request.response_id}] [LLM] Beginning response generation...`);
 
         // 1. Context Retrieval (RAG)
         let context = "";
@@ -182,6 +188,7 @@ export class LlmOpenAiClient {
             });
         }
 
+        console.log(`[${request.response_id}] [OpenAI] Calling with ${messages.length} messages. Model: ${this.model}`);
         try {
             const stream = await this.openaiClient.chat.completions.create({
                 model: this.model as any,
@@ -190,6 +197,7 @@ export class LlmOpenAiClient {
                 max_tokens: this.maxTokens,
                 stream: true,
             });
+            console.log(`[${request.response_id}] [OpenAI] Stream opened.`);
 
             let fullAgentResponse = "";
 
@@ -209,6 +217,7 @@ export class LlmOpenAiClient {
                     ws.send(JSON.stringify(event));
                 }
             }
+            console.log(`[${request.response_id}] [LLM] Stream complete. Total chars: ${fullAgentResponse.length}`);
 
             // 3. Hangup Logic & Lead Capture
             const shouldHangUp = this.hangupPhrases.some(phrase =>
