@@ -351,3 +351,127 @@ button {
 .chevron.rotated {
     transform: rotate(180deg);
 }
+/* RAG Help Modal & Info Trigger */
+.info-trigger {
+    cursor: pointer;
+    color: var(--text-muted);
+    display: flex;
+    align-items: center;
+    transition: color 0.2s;
+}
+.info-trigger:hover {
+    color: var(--accent);
+}
+
+.modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(15, 23, 42, 0.6);
+    backdrop-filter: blur(4px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+}
+
+.modal {
+    background: white;
+    width: 90%;
+    max-width: 600px;
+    border-radius: 12px;
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+    overflow: hidden;
+    animation: modalIn 0.3s ease-out;
+}
+
+@keyframes modalIn {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.modal-header {
+    padding: 20px 24px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.modal-header h2 {
+    font-size: 1.1rem;
+    font-weight: 700;
+}
+
+.modal-body {
+    padding: 24px;
+    font-size: 0.95rem;
+    line-height: 1.6;
+}
+
+.step-guide {
+    margin: 20px 0;
+}
+
+.step {
+    display: flex;
+    gap: 12px;
+    align-items: flex-start;
+}
+
+.step-num {
+    background: var(--electric-gradient);
+    color: white;
+    width: 24px;
+    height: 24px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 0.8rem;
+    flex-shrink: 0;
+}
+
+.arrow {
+    margin-left: 10px;
+    color: var(--text-muted);
+    font-size: 1.2rem;
+}
+
+.code-block-header {
+    background: #0f172a;
+    color: #94a3b8;
+    padding: 8px 16px;
+    border-radius: 8px 8px 0 0;
+    font-size: 0.75rem;
+    font-weight: 600;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 12px;
+}
+
+.sql-preview {
+    background: #1e293b;
+    color: #e2e8f0;
+    padding: 16px;
+    border-radius: 0 0 8px 8px;
+    font-family: var(--font-mono);
+    font-size: 0.8rem;
+    overflow-x: auto;
+    max-height: 250px;
+    border-left: 2px solid var(--accent);
+}
+
+.modal-footer {
+    padding: 16px 24px;
+    border-top: 1px solid var(--border);
+}
+
+.btn-small {
+    padding: 4px 8px;
+    font-size: 0.7rem;
+}
