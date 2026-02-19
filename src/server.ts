@@ -202,8 +202,13 @@ wsInstance.app.ws(
             },
         };
         ws.send(JSON.stringify(configEvent));
+        console.log(`[${call_id}] Config sent. Waiting for agent initiation...`);
 
-        llmClient.BeginMessage(ws);
+        // Small delay to ensure Retell has processed the config event
+        setTimeout(() => {
+            console.log(`[${call_id}] Sending BeginMessage (Greeting)...`);
+            llmClient.BeginMessage(ws);
+        }, 100);
 
         ws.on("error", (err: Error) => {
             console.error(`[${call_id}] WebSocket error:`, err);
@@ -216,6 +221,9 @@ wsInstance.app.ws(
         });
 
         ws.on("message", async (data: RawData, isBinary: boolean) => {
+            const messageStr = data.toString();
+            console.log(`[${call_id}] Incoming: ${messageStr.substring(0, 200)}${messageStr.length > 200 ? '...' : ''}`);
+
             if (isBinary) {
                 console.error(`[${call_id}] Received binary message, expected text.`);
                 ws.close(1002, "Expected text message, got binary.");

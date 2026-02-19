@@ -116,10 +116,12 @@ export class LlmOpenAiClient {
      * Sends the first message to greet the user.
      */
     BeginMessage(ws: WebSocket): void {
+        const content = this.greeting || "Hola, ¿cómo puedo ayudarte?";
+        console.log(`[${this.agentId}] Sending greeting: "${content}"`);
         const event: RetellResponseEvent = {
             response_type: "response",
             response_id: 0,
-            content: this.greeting,
+            content: content,
             content_complete: true,
             end_call: false,
         };
@@ -133,7 +135,16 @@ export class LlmOpenAiClient {
         request: RetellRequest,
         ws: WebSocket
     ): Promise<void> {
-        if (request.interaction_type === "update_only") return;
+        console.log(`[Interaction] type: ${request.interaction_type}, response_id: ${request.response_id}`);
+
+        if (request.interaction_type === "update_only") {
+            // Check if Retell shifted turn to agent without response_required (rare)
+            if (request.turntaking === "agent_turn") {
+                console.log("Turn shifted to agent in update_only, forcing response.");
+            } else {
+                return;
+            }
+        }
 
         // 1. Context Retrieval (RAG)
         let context = "";
