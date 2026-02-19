@@ -32,9 +32,22 @@ const auth = basicAuth({
     realm: 'Clinibot Builder'
 });
 
-// Protect UI and API routes, but allow /health and websockets
+// ============================================================
+// API Routes & Health
+// ============================================================
+
+app.get("/health", (_req: Request, res: Response) => {
+    res.json({
+        status: "ok",
+        version: "v2.1.0",
+        service: "Retell Custom LLM WebSocket Server",
+        timestamp: new Date().toISOString(),
+    });
+});
+
+// Protect all other routes
 app.use((req: Request, res: Response, next: NextFunction) => {
-    if (req.path === "/health" || req.path.startsWith("/llm-websocket")) {
+    if (req.path.startsWith("/llm-websocket")) {
         return next();
     }
     return auth(req, res, next);
@@ -46,10 +59,6 @@ app.use(express.static(path.join(__dirname, "../public")));
 const supabaseUrl = process.env.SUPABASE_URL || "";
 const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY || "";
 const supabase = createClient(supabaseUrl, supabaseKey);
-
-// ============================================================
-// API Routes (Frontend)
-// ============================================================
 
 // List all agents
 app.get("/api/agents", async (_req: Request, res: Response) => {
@@ -83,7 +92,7 @@ app.get("/api/agents/:id", async (req: Request, res: Response) => {
     }
 });
 
-// Save/Update agent configuration
+// Save/Update agent
 app.post("/api/agents", async (req: Request, res: Response) => {
     try {
         const agent: Agent = req.body;
@@ -105,15 +114,6 @@ app.post("/api/agents", async (req: Request, res: Response) => {
 });
 
 // Delete agent
-app.get("/health", (_req: Request, res: Response) => {
-    res.json({
-        status: "ok",
-        version: "v2.0.0",
-        service: "Retell Custom LLM WebSocket Server",
-        timestamp: new Date().toISOString(),
-    });
-});
-
 app.delete("/api/agents/:id", async (req: Request, res: Response) => {
     try {
         const { id } = req.params;
@@ -129,14 +129,16 @@ app.delete("/api/agents/:id", async (req: Request, res: Response) => {
     }
 });
 
-// Serve index.html for the root
+// Serve UI for root and fallback
+const indexPath = path.join(__dirname, "../public/index.html");
+
 app.get("/", (_req: Request, res: Response) => {
-    res.sendFile(path.join(__dirname, "../public", "index.html"));
+    res.sendFile(indexPath);
 });
 
-// Serve index.html for all other routes
-app.get("*", (_req: Request, res: Response) => {
-    res.sendFile(path.join(__dirname, "../public", "index.html"));
+app.get("*", (req: Request, res: Response) => {
+    if (req.path.startsWith("/api/")) return res.status(404).json({ error: "Not found" });
+    res.sendFile(indexPath);
 });
 
 // ============================================================

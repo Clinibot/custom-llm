@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Constructor de Agentes | Clinibot</title>
+    <title>Constructor de Agentes Pro | Clinibot</title>
     <link rel="stylesheet" href="style.css">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link
@@ -29,7 +29,7 @@
                 </div>
             </div>
             <nav id="agentList">
-                <!-- Fetching agents... -->
+                <div class="status">Cargando agentes...</div>
             </nav>
             <div class="sidebar-footer">
                 <button id="saveBtn">GUARDAR CAMBIOS</button>
@@ -63,8 +63,8 @@
             <div class="card">
                 <div class="card-header" onclick="toggleAccordion('kb-content', this)">
                     <h3>Brain & RAG</h3>
-                    <svg class="chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                        stroke-width="2">
+                    <svg class="chevron rotated" width="16" height="16" viewBox="0 0 24 24" fill="none"
+                        stroke="currentColor" stroke-width="2">
                         <path d="M6 9l6 6 6-6" />
                     </svg>
                 </div>
@@ -105,8 +105,8 @@
             <div class="card">
                 <div class="card-header" onclick="toggleAccordion('retell-content', this)">
                     <h3>Retell AI Integration</h3>
-                    <svg class="chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                        stroke-width="2">
+                    <svg class="chevron rotated" width="16" height="16" viewBox="0 0 24 24" fill="none"
+                        stroke="currentColor" stroke-width="2">
                         <path d="M6 9l6 6 6-6" />
                     </svg>
                 </div>
@@ -198,8 +198,16 @@
         function toggleAccordion(id, header) {
             const content = document.getElementById(id);
             const chevron = header.querySelector('.chevron');
-            content.classList.toggle('active');
-            chevron.classList.toggle('rotated');
+            if (content.classList.contains('active')) {
+                content.style.maxHeight = content.scrollHeight + 'px';
+                setTimeout(() => { content.classList.remove('active'); content.style.maxHeight = '0'; }, 10);
+                chevron.classList.remove('rotated');
+            } else {
+                content.classList.add('active');
+                content.style.maxHeight = content.scrollHeight + 'px';
+                setTimeout(() => { content.style.maxHeight = 'none'; }, 300);
+                chevron.classList.add('rotated');
+            }
         }
 
         async function loadAgentList() {
@@ -215,6 +223,10 @@
         function renderAgentList() {
             const list = document.getElementById('agentList');
             list.innerHTML = '';
+            if (agents.length === 0) {
+                list.innerHTML = '<div class="status">No hay agentes.</div>';
+                return;
+            }
             agents.forEach(agent => {
                 const div = document.createElement('div');
                 div.className = `nav-item ${currentAgentId === agent.id ? 'active' : ''}`;
