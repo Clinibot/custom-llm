@@ -4,26 +4,74 @@ dotenv.config();
 import express, { Request, Response } from "express";
 import { RawData, WebSocket } from "ws";
 import expressWs from "express-ws";
+import { createClient } from "@supabase/supabase-js";
+import path from "path";
 import { LlmOpenAiClient } from "./llm-openai-client";
 import {
     RetellRequest,
     RetellConfigEvent,
     RetellPingPongEvent,
+    BotConfig,
 } from "./types";
 
 // ============================================================
-// Server Setup
+// Server & DB Setup
 // ============================================================
 
 const app = express();
 const wsInstance = expressWs(app);
 const port = parseInt(process.env.PORT || "8080", 10);
 
+app.use(express.json());
+app.use(express.static(path.join(__dirname, "../public")));
+
+// Supabase client — Ensure SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY are in .env
+const supabaseUrl = process.env.SUPABASE_URL || "";
+const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY || "";
+const supabase = createClient(supabaseUrl, supabaseKey);
+
 // ============================================================
-// HTTP Routes
+// API Routes (Frontend)
 // ============================================================
 
-app.get("/", (_req: Request, res: Response) => {
+// Get current configuration
+app.get("/api/config", async (_req: Request, res: Response) => {
+    try {
+        const { data, error } = await supabase
+            .from("config")
+            .select("*")
+            .eq("id", "current")
+            .single();
+
+        if (error) throw error;
+        res.json(data);
+    } catch (err) {
+        // Return defaults if DB is not ready or empty
+        res.json({
+            system_prompt: `## Identity\nYou are a helpful AI assistant for Clinibot...`,
+            greeting: "Hola, ¿en qué puedo ayudarte hoy?",
+            model: "gpt-4o-mini"
+        });
+    }
+});
+
+// Save configuration
+app.post("/api/config", async (req: Request, res: Response) => {
+    try {
+        const config: BotConfig = req.body;
+        const { error } = await supabase
+            .from("config")
+            .upsert({ id: "current", ...config });
+
+        if (error) throw error;
+        res.json({ status: "ok" });
+    } catch (err) {
+        console.error("Error saving config:", err);
+        res.status(500).json({ error: "Failed to save config" });
+    }
+});
+
+app.get("/health", (_req: Request, res: Response) => {
     res.json({
         status: "ok",
         service: "Retell Custom LLM WebSocket Server",
@@ -43,6 +91,9 @@ wsInstance.app.ws(
 
         // Create a new LLM client for this call
         const llmClient = new LlmOpenAiClient();
+
+        // Initialize config from Supabase before starting
+        await llmClient.initialize();
 
         // --- Send config event ---
         const configEvent: RetellConfigEvent = {

@@ -84,3 +84,9 @@ export type RetellEvent =
     | RetellConfigEvent
     | RetellResponseEvent
     | RetellPingPongEvent;
+
+export interface BotConfig {
+    system_prompt: string;
+    greeting: string;
+    model: string;
+}

@@ -1,34 +1,56 @@
 import OpenAI from "openai";
 import { WebSocket } from "ws";
+import { createClient } from "@supabase/supabase-js";
 import {
     RetellRequest,
     RetellResponseEvent,
-    Utterance,
 } from "./types";
 
 /**
  * Custom LLM client using OpenAI GPT for Retell AI.
- * Streams responses back to Retell via WebSocket.
  */
 export class LlmOpenAiClient {
     private openaiClient: OpenAI;
     private systemPrompt: string;
+    private greeting: string;
+    private model: string;
+    private supabase: any;
 
     constructor() {
         this.openaiClient = new OpenAI({
             apiKey: process.env.OPENAI_API_KEY,
         });
 
-        // Customize this system prompt to define your agent's personality and behavior
-        this.systemPrompt = `## Identity
-You are a helpful AI assistant for Clinibot. You help users with their questions in a friendly, professional manner.
+        const supabaseUrl = process.env.SUPABASE_URL || "";
+        const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY || "";
+        this.supabase = createClient(supabaseUrl, supabaseKey);
 
-## Style
-- Be concise and clear in your responses
-- Use a warm and professional tone
-- If you don't know something, say so honestly
-- Keep responses conversational and natural for voice interaction
-- Avoid using markdown, bullet points, or formatting — this is a voice conversation`;
+        // Default values
+        this.systemPrompt = `## Identity\nYou are a helpful AI assistant for Clinibot...`;
+        this.greeting = "Hola, ¿en qué puedo ayudarte hoy?";
+        this.model = "gpt-4o-mini";
+    }
+
+    /**
+     * Fetch configuration from Supabase.
+     */
+    async initialize(): Promise<void> {
+        try {
+            const { data, error } = await this.supabase
+                .from("config")
+                .select("*")
+                .eq("id", "current")
+                .single();
+
+            if (data && !error) {
+                this.systemPrompt = data.system_prompt || this.systemPrompt;
+                this.greeting = data.greeting || this.greeting;
+                this.model = data.model || this.model;
+                console.log("Config loaded from Supabase");
+            }
+        } catch (err) {
+            console.log("Using default config (Supabase not ready)");
+        }
     }
 
     /**
@@ -39,7 +61,7 @@ You are a helpful AI assistant for Clinibot. You help users with their questions
         const event: RetellResponseEvent = {
             response_type: "response",
             response_id: 0,
-            content: "Hola, ¿en qué puedo ayudarte hoy?",
+            content: this.greeting,
             content_complete: true,
             end_call: false,
         };
@@ -53,18 +75,12 @@ You are a helpful AI assistant for Clinibot. You help users with their questions
         request: RetellRequest,
         ws: WebSocket
     ): Promise<void> {
-        // Only respond to response_required and reminder_required events
-        if (request.interaction_type === "update_only") {
-            // Optionally process live transcript updates here
-            return;
-        }
+        if (request.interaction_type === "update_only") return;
 
-        // Prepare messages for OpenAI
         const messages: OpenAI.Chat.Completions.ChatCompletionMessageParam[] = [
             { role: "system", content: this.systemPrompt },
         ];
 
-        // Add conversation history from transcript
         if (request.transcript) {
             for (const utterance of request.transcript) {
                 messages.push({
@@ -74,7 +90,6 @@ You are a helpful AI assistant for Clinibot. You help users with their questions
             }
         }
 
-        // If it's a reminder (user hasn't spoken), add a hint
         if (request.interaction_type === "reminder_required") {
             messages.push({
                 role: "user",
@@ -83,9 +98,8 @@ You are a helpful AI assistant for Clinibot. You help users with their questions
         }
 
         try {
-            // Stream response from OpenAI
             const stream = await this.openaiClient.chat.completions.create({
-                model: "gpt-4o-mini",
+                model: this.model as any,
                 messages: messages,
                 temperature: 0.8,
                 max_tokens: 400,
@@ -93,10 +107,7 @@ You are a helpful AI assistant for Clinibot. You help users with their questions
             });
 
             for await (const chunk of stream) {
-                // Check if WebSocket is still open
-                if (ws.readyState !== WebSocket.OPEN) {
-                    return;
-                }
+                if (ws.readyState !== WebSocket.OPEN) return;
 
                 const delta = chunk.choices[0]?.delta?.content;
                 if (delta) {
@@ -111,7 +122,6 @@ You are a helpful AI assistant for Clinibot. You help users with their questions
                 }
             }
 
-            // Send final event marking content as complete
             if (ws.readyState === WebSocket.OPEN) {
                 const finalEvent: RetellResponseEvent = {
                     response_type: "response",
@@ -124,8 +134,6 @@ You are a helpful AI assistant for Clinibot. You help users with their questions
             }
         } catch (err) {
             console.error("Error in OpenAI streaming:", err);
-
-            // Send a fallback response
             if (ws.readyState === WebSocket.OPEN) {
                 const fallback: RetellResponseEvent = {
                     response_type: "response",

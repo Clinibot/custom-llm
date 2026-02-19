@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Configuración Clinibot</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>CONFIGURACIÓN</h1>
+        </header>
+
+        <main>
+            <div class="field">
+                <label for="systemPrompt">SYSTEM PROMPT</label>
+                <textarea id="systemPrompt" placeholder="Define la personalidad..."></textarea>
+            </div>
+
+            <div class="field">
+                <label for="greeting">SALUDO INICIAL</label>
+                <input type="text" id="greeting" placeholder="Ej: Hola, ¿cómo puedo ayudarte?">
+            </div>
+
+            <div class="field">
+                <label for="model">MODELO AI</label>
+                <select id="model">
+                    <option value="gpt-4o-mini">gpt-4o-mini (Recomendado)</option>
+                    <option value="gpt-4o">gpt-4o (Más inteligente)</option>
+                    <option value="gpt-3.5-turbo">gpt-3.5-turbo</option>
+                </select>
+            </div>
+
+            <div class="actions">
+                <button id="saveBtn">GUARDAR CAMBIOS</button>
+            </div>
+
+            <div id="status" class="status"></div>
+        </main>
+    </div>
+
+    <script>
+        const systemPromptInput = document.getElementById('systemPrompt');
+        const greetingInput = document.getElementById('greeting');
+        const modelInput = document.getElementById('model');
+        const saveBtn = document.getElementById('saveBtn');
+        const statusEl = document.getElementById('status');
+
+        // Fetch current config
+        async function loadConfig() {
+            try {
+                const res = await fetch('/api/config');
+                const config = await res.json();
+                
+                systemPromptInput.value = config.system_prompt || '';
+                greetingInput.value = config.greeting || '';
+                modelInput.value = config.model || 'gpt-4o-mini';
+            } catch (err) {
+                showStatus('Error al cargar la configuración', 'error');
+            }
+        }
+
+        async function saveConfig() {
+            saveBtn.disabled = true;
+            saveBtn.textContent = 'GUARDANDO...';
+            
+            try {
+                const res = await fetch('/api/config', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        system_prompt: systemPromptInput.value,
+                        greeting: greetingInput.value,
+                        model: modelInput.value
+                    })
+                });
+
+                if (res.ok) {
+                    showStatus('Configuración guardada correctamente', 'success');
+                } else {
+                    showStatus('Error al guardar', 'error');
+                }
+            } catch (err) {
+                showStatus('Error de conexión', 'error');
+            } finally {
+                saveBtn.disabled = false;
+                saveBtn.textContent = 'GUARDAR CAMBIOS';
+            }
+        }
+
+        function showStatus(msg, type) {
+            statusEl.textContent = msg;
+            statusEl.className = 'status ' + type;
+            setTimeout(() => {
+                statusEl.textContent = '';
+                statusEl.className = 'status';
+            }, 3000);
+        }
+
+        saveBtn.addEventListener('click', saveConfig);
+        window.addEventListener('DOMContentLoaded', loadConfig);
+    </script>
+</body>
+</html>

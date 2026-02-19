@@ -1,0 +1,118 @@
+:root {
+    --bg-color: #ffffff;
+    --text-color: #000000;
+    --border-color: #e0e0e0;
+    --accent-color: #000000;
+    --error-color: #ff0000;
+    --success-color: #00aa00;
+    --font-family: 'Inter', sans-serif;
+}
+
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    background-color: var(--bg-color);
+    color: var(--text-color);
+    font-family: var(--font-family);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    padding: 20px;
+}
+
+.container {
+    width: 100%;
+    max-width: 600px;
+}
+
+header {
+    margin-bottom: 40px;
+    border-bottom: 2px solid var(--text-color);
+    padding-bottom: 10px;
+}
+
+h1 {
+    font-weight: 300;
+    font-size: 1.2rem;
+    letter-spacing: 0.1rem;
+}
+
+.field {
+    margin-bottom: 24px;
+}
+
+label {
+    display: block;
+    font-size: 0.7rem;
+    font-weight: 500;
+    margin-bottom: 8px;
+    letter-spacing: 0.05rem;
+}
+
+textarea, input[type="text"], select {
+    width: 100%;
+    padding: 12px;
+    border: 1px solid var(--border-color);
+    background: transparent;
+    font-family: inherit;
+    font-size: 0.9rem;
+    outline: none;
+    transition: border-color 0.2s;
+}
+
+textarea {
+    height: 300px;
+    resize: vertical;
+}
+
+textarea:focus, input[type="text"]:focus, select:focus {
+    border-color: var(--text-color);
+}
+
+.actions {
+    margin-top: 40px;
+}
+
+button {
+    width: 100%;
+    padding: 16px;
+    background-color: var(--text-color);
+    color: var(--bg-color);
+    border: none;
+    font-family: inherit;
+    font-size: 0.8rem;
+    font-weight: 500;
+    letter-spacing: 0.1rem;
+    cursor: pointer;
+    transition: opacity 0.2s;
+}
+
+button:hover {
+    opacity: 0.9;
+}
+
+button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.status {
+    margin-top: 20px;
+    font-size: 0.75rem;
+    text-align: center;
+    letter-spacing: 0.05rem;
+    height: 1rem;
+}
+
+.status.error {
+    color: var(--error-color);
+}
+
+.status.success {
+    color: var(--success-color);
+}
