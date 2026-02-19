@@ -1,12 +1,13 @@
 {
   "name": "retell-custom-llm",
   "version": "1.0.0",
+  "packageManager": "npm@10.8.2",
   "description": "Custom LLM WebSocket server for Retell AI",
   "main": "dist/server.js",
   "scripts": {
     "dev": "ts-node src/server.ts",
     "build": "tsc",
-    "start": "node dist/server.js"
+    "start": "npm run build && node dist/server.js"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.97.0",
