@@ -79,6 +79,12 @@ app.get("/health", (_req: Request, res: Response) => {
     });
 });
 
+// Serve index.html for all other routes (SPA behavior)
+// Place this AFTER all specific API and assets routes
+app.get("*", (_req: Request, res: Response) => {
+    res.sendFile(path.join(__dirname, "../public", "index.html"));
+});
+
 // ============================================================
 // WebSocket Route — Retell LLM Integration
 // ============================================================
