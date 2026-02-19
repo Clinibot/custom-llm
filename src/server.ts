@@ -83,9 +83,6 @@ wsInstance.app.ws(
         });
 
         ws.on("message", async (data: RawData, isBinary: boolean) => {
-            const messageStr = data.toString();
-            console.log(`[${call_id}] WS Msg: ${messageStr.substring(0, 100)}...`);
-
             if (isBinary) {
                 ws.close(1002, "Text only.");
                 return;
@@ -93,68 +90,10 @@ wsInstance.app.ws(
 
             try {
                 const request: RetellRequest = JSON.parse(data.toString());
-
-                if (request.interaction_type === "ping_pong") {
-                    ws.send(JSON.stringify({
-                        response_type: "ping_pong",
-                        timestamp: request.timestamp!,
-                    }));
-                    return;
-                }
-
-                if (request.interaction_type === "call_details") {
-                    console.log(`[${call_id}] Details received`);
-                    return;
-                }
-
-                llmClient.DraftResponse(request, ws);
+                // Handle protocol strictly in DraftResponse
+                await llmClient.DraftResponse(request, ws);
             } catch (err) {
-                console.error(`[${call_id}] Parse Error:`, err);
-            }
-        });
-    }
-);
-
-// Fallback Route for duplicated call_id /llm-websocket/call_xxx/call_xxx
-wsInstance.app.ws(
-    "/llm-websocket/:call_id/:call_id_duplicate",
-    async (ws: WebSocket, req: Request) => {
-        const { call_id } = req.params;
-        const agent_id = req.query.agent_id as string;
-        console.log(`[${call_id}] ⚠️ Duplicated URL detected, handling gracefully. Agent: ${agent_id}`);
-
-        if (!agent_id) {
-            ws.close(1008, "Missing agent_id");
-            return;
-        }
-
-        const llmClient = new LlmOpenAiClient();
-        await llmClient.initialize(agent_id);
-
-        const configEvent: RetellConfigEvent = {
-            response_type: "config",
-            config: { auto_reconnect: true, call_details: false },
-        };
-        ws.send(JSON.stringify(configEvent));
-
-        // Greeting - same as main route
-        const greetingContent = llmClient.greeting || "Hola, ¿cómo puedo ayudarte?";
-        console.log(`[${call_id}] 🚀 Sending Greeting (Fallback): "${greetingContent}"`);
-        ws.send(JSON.stringify({
-            response_type: "response",
-            response_id: 0,
-            content: greetingContent,
-            content_complete: true,
-            end_call: false,
-        }));
-
-        ws.on("message", async (data: RawData) => {
-            try {
-                const request: RetellRequest = JSON.parse(data.toString());
-                console.log(`[${call_id}] Handled by Fallback Route. Type: ${request.interaction_type}`);
-                llmClient.DraftResponse(request, ws);
-            } catch (err) {
-                console.error(`[${call_id}] Parse Error (Fallback):`, err);
+                console.error(`[${call_id}] WS Error:`, err);
             }
         });
     }

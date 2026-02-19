@@ -139,56 +139,57 @@ export class LlmOpenAiClient {
         request: RetellRequest,
         ws: WebSocket
     ): Promise<void> {
-        console.log(`[DraftResponse] Type: ${request.interaction_type}, Response ID: ${request.response_id}, Turntaking: ${request.turntaking}`);
-
-        if (request.interaction_type === "update_only") {
-            if (request.turntaking === "agent_turn") {
-                console.log(`[${request.response_id}] [Protocol] Agent turn detected in update_only. Continuing.`);
-            } else {
-                return;
-            }
+        if (request.interaction_type === "ping_pong") {
+            ws.send(JSON.stringify({
+                response_type: "ping_pong",
+                timestamp: request.timestamp
+            }));
+            return;
         }
 
-        console.log(`[${request.response_id}] [LLM] Beginning response generation...`);
+        if (request.interaction_type === "update_only") {
+            // Update only is just a transcript update, no response needed
+            return;
+        }
+
+        if (request.interaction_type !== "response_required" && request.interaction_type !== "reminder_required") {
+            console.log(`[DraftResponse] Ignoring interaction_type: ${request.interaction_type}`);
+            return;
+        }
+
+        if (request.response_id === undefined) {
+            console.error("[DraftResponse] Error: Missing response_id for response_required event.");
+            return;
+        }
+
+        console.log(`[${request.response_id}] [LLM] Processing ${request.interaction_type}...`);
 
         // 1. Context Retrieval (RAG)
         let context = "";
         const lastUserMessage = request.transcript?.filter(u => u.role === "user").pop();
         if (lastUserMessage && this.knowledgeBase) {
-            context = await this.getRelevantContext(lastUserMessage.content);
-        }
-
-        // 2. Build System Prompt with Metadata
-        let fullSystemPrompt = this.systemPrompt;
-        if (context) {
-            fullSystemPrompt += `\n\n## Relevant Context (Use this to answer questions):\n${context}`;
-        }
-        if (this.extractionFields) {
-            fullSystemPrompt += `\n\n## Mission: You MUST extract these fields during the conversation: ${this.extractionFields}`;
-        }
-        fullSystemPrompt += `\n\n## Language Instruction: Always communicate in ${this.language}.`;
-
-        const messages: OpenAI.Chat.Completions.ChatCompletionMessageParam[] = [
-            { role: "system", content: fullSystemPrompt },
-        ];
-
-        if (request.transcript) {
-            for (const utterance of request.transcript) {
-                messages.push({
-                    role: utterance.role === "agent" ? "assistant" : "user",
-                    content: utterance.content,
-                });
+            try {
+                context = await this.getRelevantContext(lastUserMessage.content);
+            } catch (err) {
+                console.error(`[${request.response_id}] RAG Error:`, err);
             }
         }
 
-        if (request.interaction_type === "reminder_required") {
-            messages.push({
-                role: "user",
-                content: this.reminderText || "(The user has been silent. Send a friendly follow-up.)",
+        // 2. Build System Prompt
+        let fullSystemPrompt = this.systemPrompt;
+        if (context) {
+            fullSystemPrompt += `\n\n## Relevant Context:\n${context}`;
+        }
+
+        const messages: any[] = [{ role: "system", content: fullSystemPrompt }];
+        if (request.transcript) {
+            request.transcript.forEach(u => {
+                messages.push({ role: u.role, content: u.content });
             });
         }
 
-        console.log(`[${request.response_id}] [OpenAI] Calling with ${messages.length} messages. Model: ${this.model}`);
+        console.log(`[${request.response_id}] [OpenAI] Querying ${this.model}...`);
+
         try {
             const stream = await this.openaiClient.chat.completions.create({
                 model: this.model as any,
@@ -197,19 +198,17 @@ export class LlmOpenAiClient {
                 max_tokens: this.maxTokens,
                 stream: true,
             });
-            console.log(`[${request.response_id}] [OpenAI] Stream opened.`);
 
+            console.log(`[${request.response_id}] [OpenAI] Streaming response...`);
             let fullAgentResponse = "";
 
             for await (const chunk of stream) {
-                if (ws.readyState !== WebSocket.OPEN) return;
-
                 const delta = chunk.choices[0]?.delta?.content;
                 if (delta) {
                     fullAgentResponse += delta;
                     const event: RetellResponseEvent = {
                         response_type: "response",
-                        response_id: request.response_id!,
+                        response_id: request.response_id, // Match the ID
                         content: delta,
                         content_complete: false,
                         end_call: false,
@@ -217,37 +216,40 @@ export class LlmOpenAiClient {
                     ws.send(JSON.stringify(event));
                 }
             }
-            console.log(`[${request.response_id}] [LLM] Stream complete. Total chars: ${fullAgentResponse.length}`);
 
-            // 3. Hangup Logic & Lead Capture
-            const shouldHangUp = this.hangupPhrases.some(phrase =>
-                fullAgentResponse.toLowerCase().includes(phrase)
-            );
+            // End of stream
+            ws.send(JSON.stringify({
+                response_type: "response",
+                response_id: request.response_id,
+                content: "",
+                content_complete: true,
+                end_call: false,
+            }));
 
-            if (ws.readyState === WebSocket.OPEN) {
-                const finalEvent: RetellResponseEvent = {
+            console.log(`[${request.response_id}] [LLM] Success. Length: ${fullAgentResponse.length}`);
+
+            // 3. Lead Capture & Hangup detection
+            if (this.hangupPhrases.some(p => fullAgentResponse.toLowerCase().includes(p))) {
+                console.log(`[${request.response_id}] [Protocol] Hangup phrase detected.`);
+                ws.send(JSON.stringify({
                     response_type: "response",
-                    response_id: request.response_id!,
+                    response_id: request.response_id,
                     content: "",
                     content_complete: true,
-                    end_call: shouldHangUp,
-                };
-                ws.send(JSON.stringify(finalEvent));
+                    end_call: true,
+                }));
             }
-
         } catch (err) {
-            console.error("Error in OpenAI streaming:", err);
-            if (ws.readyState === WebSocket.OPEN) {
-                const fallback: RetellResponseEvent = {
+            console.error(`[${request.response_id}] [OpenAI] CRITICAL ERROR:`, err);
+            if (ws.readyState === ws.OPEN) {
+                ws.send(JSON.stringify({
                     response_type: "response",
-                    response_id: request.response_id!,
-                    content: "Disculpa, tuve un problema procesando tu solicitud. ¿Podrías repetirlo?",
+                    response_id: request.response_id,
+                    content: "Lo siento, tengo un problema técnico momentáneo.",
                     content_complete: true,
                     end_call: false,
-                };
-                ws.send(JSON.stringify(fallback));
+                }));
             }
         }
     }
-
 }
