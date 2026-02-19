@@ -17,6 +17,12 @@ export class LlmOpenAiClient {
     private temperature: number;
     private maxTokens: number;
     private reminderText: string;
+    private knowledgeBase: string;
+    private webhookUrl: string;
+    private hangupPhrases: string[];
+    private extractionFields: string;
+    private language: string;
+    private agentId: string;
     private supabase: any;
 
     constructor() {
@@ -29,18 +35,25 @@ export class LlmOpenAiClient {
         this.supabase = createClient(supabaseUrl, supabaseKey);
 
         // Default values
-        this.systemPrompt = `## Identity\nYou are a helpful AI assistant for Clinibot...`;
-        this.greeting = "Hola, ¿en qué puedo ayudarte hoy?";
+        this.systemPrompt = "";
+        this.greeting = "";
         this.model = "gpt-4o-mini";
         this.temperature = 0.8;
         this.maxTokens = 400;
-        this.reminderText = "(The user has been silent for a while. Send a brief, friendly follow-up.)";
+        this.reminderText = "";
+        this.knowledgeBase = "";
+        this.webhookUrl = "";
+        this.hangupPhrases = [];
+        this.extractionFields = "";
+        this.language = "es";
+        this.agentId = "";
     }
 
     /**
      * Fetch configuration from Supabase for a specific agent.
      */
     async initialize(agentId: string): Promise<void> {
+        this.agentId = agentId;
         try {
             const { data, error } = await this.supabase
                 .from("agents")
@@ -49,18 +62,52 @@ export class LlmOpenAiClient {
                 .single();
 
             if (data && !error) {
-                this.systemPrompt = data.system_prompt || this.systemPrompt;
-                this.greeting = data.greeting || this.greeting;
-                this.model = data.model || this.model;
-                this.temperature = data.temperature !== undefined ? data.temperature : this.temperature;
-                this.maxTokens = data.max_tokens || this.maxTokens;
-                this.reminderText = data.reminder_text || this.reminderText;
+                this.systemPrompt = data.system_prompt || "";
+                this.greeting = data.greeting || "";
+                this.model = data.model || "gpt-4o-mini";
+                this.temperature = data.temperature ?? 0.8;
+                this.maxTokens = data.max_tokens || 400;
+                this.reminderText = data.reminder_text || "";
+                this.knowledgeBase = data.knowledge_base || "";
+                this.webhookUrl = data.webhook_url || "";
+                this.hangupPhrases = data.hangup_phrases ? data.hangup_phrases.split(",").map((s: string) => s.trim().toLowerCase()) : [];
+                this.extractionFields = data.extraction_fields || "";
+                this.language = data.language || "es";
                 console.log(`Config loaded for agent: ${agentId}`);
-            } else {
-                console.log(`Agent ${agentId} not found, using defaults`);
             }
         } catch (err) {
-            console.log("Error loading config from Supabase:", err);
+            console.log("Error loading config:", err);
+        }
+    }
+
+    /**
+     * Simple RAG: Search Supabase for relevant content.
+     * Expects a 'documents' table with 'content' and 'embedding' columns.
+     */
+    async getRelevantContext(query: string): Promise<string> {
+        if (!this.knowledgeBase) return "";
+        try {
+            // 1. Generate embedding for the query
+            const embeddingResponse = await this.openaiClient.embeddings.create({
+                model: "text-embedding-3-small",
+                input: query,
+            });
+            const embedding = embeddingResponse.data[0].embedding;
+
+            // 2. Search Supabase using vector similarity
+            // Requires match_documents stored procedure
+            const { data, error } = await this.supabase.rpc("match_documents", {
+                query_embedding: embedding,
+                match_threshold: 0.5,
+                match_count: 3,
+                filter_agent_id: this.agentId
+            });
+
+            if (error || !data) return "";
+            return data.map((d: any) => d.content).join("\n\n");
+        } catch (err) {
+            console.error("RAG Error:", err);
+            return "";
         }
     }
 
@@ -88,8 +135,25 @@ export class LlmOpenAiClient {
     ): Promise<void> {
         if (request.interaction_type === "update_only") return;
 
+        // 1. Context Retrieval (RAG)
+        let context = "";
+        const lastUserMessage = request.transcript?.filter(u => u.role === "user").pop();
+        if (lastUserMessage && this.knowledgeBase) {
+            context = await this.getRelevantContext(lastUserMessage.content);
+        }
+
+        // 2. Build System Prompt with Metadata
+        let fullSystemPrompt = this.systemPrompt;
+        if (context) {
+            fullSystemPrompt += `\n\n## Relevant Context (Use this to answer questions):\n${context}`;
+        }
+        if (this.extractionFields) {
+            fullSystemPrompt += `\n\n## Mission: You MUST extract these fields during the conversation: ${this.extractionFields}`;
+        }
+        fullSystemPrompt += `\n\n## Language Instruction: Always communicate in ${this.language}.`;
+
         const messages: OpenAI.Chat.Completions.ChatCompletionMessageParam[] = [
-            { role: "system", content: this.systemPrompt },
+            { role: "system", content: fullSystemPrompt },
         ];
 
         if (request.transcript) {
@@ -104,7 +168,7 @@ export class LlmOpenAiClient {
         if (request.interaction_type === "reminder_required") {
             messages.push({
                 role: "user",
-                content: this.reminderText,
+                content: this.reminderText || "(The user has been silent. Send a friendly follow-up.)",
             });
         }
 
@@ -117,11 +181,14 @@ export class LlmOpenAiClient {
                 stream: true,
             });
 
+            let fullAgentResponse = "";
+
             for await (const chunk of stream) {
                 if (ws.readyState !== WebSocket.OPEN) return;
 
                 const delta = chunk.choices[0]?.delta?.content;
                 if (delta) {
+                    fullAgentResponse += delta;
                     const event: RetellResponseEvent = {
                         response_type: "response",
                         response_id: request.response_id!,
@@ -133,16 +200,27 @@ export class LlmOpenAiClient {
                 }
             }
 
+            // 3. Hangup Logic & Lead Capture
+            const shouldHangUp = this.hangupPhrases.some(phrase =>
+                fullAgentResponse.toLowerCase().includes(phrase)
+            );
+
             if (ws.readyState === WebSocket.OPEN) {
                 const finalEvent: RetellResponseEvent = {
                     response_type: "response",
                     response_id: request.response_id!,
                     content: "",
                     content_complete: true,
-                    end_call: false,
+                    end_call: shouldHangUp,
                 };
                 ws.send(JSON.stringify(finalEvent));
             }
+
+            // 4. Lead Capture to Webhook (if call ends)
+            if (shouldHangUp && this.webhookUrl) {
+                this.sendLeadToWebhook(request.transcript || [], fullAgentResponse);
+            }
+
         } catch (err) {
             console.error("Error in OpenAI streaming:", err);
             if (ws.readyState === WebSocket.OPEN) {
@@ -155,6 +233,27 @@ export class LlmOpenAiClient {
                 };
                 ws.send(JSON.stringify(fallback));
             }
+        }
+    }
+
+    /**
+     * Send call summary to external webhook.
+     */
+    private async sendLeadToWebhook(transcript: any[], lastResponse: string) {
+        try {
+            fetch(this.webhookUrl, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    agent_id: this.agentId,
+                    timestamp: new Date().toISOString(),
+                    transcript: transcript,
+                    last_response: lastResponse,
+                    summary: "Lead captured from Retell call"
+                })
+            });
+        } catch (e) {
+            console.error("Webhook error:", e);
         }
     }
 }

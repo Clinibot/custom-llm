@@ -94,4 +94,10 @@ export interface Agent {
     temperature: number;
     max_tokens: number;
     reminder_text: string;
+    // New fields
+    knowledge_base?: string;
+    webhook_url?: string;
+    hangup_phrases?: string; // Comma separated
+    extraction_fields?: string; // Comma separated
+    language?: string;
 }

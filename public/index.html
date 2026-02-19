@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Constructor de Agentes | Clinibot</title>
+    <title>Constructor de Agentes Pro | Clinibot</title>
     <link rel="stylesheet" href="style.css">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -47,7 +47,7 @@
             <section>
                 <header>
                     <h2>SYSTEM PROMPT</h2>
-                    <p>Identidad y comportamiento del agente.</p>
+                    <p>Identidad y comportamiento central.</p>
                 </header>
                 <div class="editor-container">
                     <textarea id="systemPrompt"></textarea>
@@ -55,10 +55,43 @@
             </section>
 
             <section class="grid">
+                <!-- RAG & LOGIC -->
+                <div class="card">
+                    <header>
+                        <h3>CEREBRO & RAG</h3>
+                        <p>Mejora la inteligencia del bot.</p>
+                    </header>
+                    <div class="field">
+                        <label for="knowledgeBase">ID BASE DE CONOCIMIENTO (Supabase)</label>
+                        <input type="text" id="knowledgeBase" placeholder="Ej: clinica_dental_faq">
+                    </div>
+                    <div class="field">
+                        <label for="extractionFields">DATOS A EXTRAER (Separados por coma)</label>
+                        <input type="text" id="extractionFields" placeholder="nombre, servicio, email">
+                    </div>
+                </div>
+
+                <!-- ACTIONS -->
+                <div class="card">
+                    <header>
+                        <h3>AUTOMATIZACIÓN</h3>
+                        <p>Cierre y notificaciones.</p>
+                    </header>
+                    <div class="field">
+                        <label for="hangupPhrases">FRASES DE CIERRE (Cuelga la llamada)</label>
+                        <input type="text" id="hangupPhrases" placeholder="adiós, hasta luego, buen día">
+                    </div>
+                    <div class="field">
+                        <label for="webhookUrl">WEBHOOK LEAD CAPTURE (Zapier/Make)</label>
+                        <input type="text" id="webhookUrl" placeholder="https://hook.make.com/...">
+                    </div>
+                </div>
+
+                <!-- RETELL -->
                 <div class="card">
                     <header>
                         <h3>INTEGRACIÓN RETELL AI</h3>
-                        <p>Copia este enlace en "Custom LLM URL".</p>
+                        <p>Custom LLM URL.</p>
                     </header>
                     <div class="field">
                         <label>WEBSOCKET URL</label>
@@ -67,29 +100,35 @@
                             <button class="btn-secondary" onclick="copyUrl()">COPIAR</button>
                         </div>
                     </div>
-                </div>
-
-                <div class="card">
-                    <header>
-                        <h3>CONFIGURACIÓN LLAMADA</h3>
-                    </header>
                     <div class="field">
                         <label for="greeting">SALUDO INICIAL</label>
                         <input type="text" id="greeting">
                     </div>
                 </div>
 
+                <!-- LLM PARAMS -->
                 <div class="card">
                     <header>
                         <h3>PARÁMETROS MODELO</h3>
                     </header>
-                    <div class="field">
-                        <label for="model">MODELO AI</label>
-                        <select id="model">
-                            <option value="gpt-4o-mini">gpt-4o-mini</option>
-                            <option value="gpt-4o">gpt-4o</option>
-                            <option value="o3-mini">o3-mini</option>
-                        </select>
+                    <div class="row">
+                        <div class="field">
+                            <label for="model">MODELO</label>
+                            <select id="model">
+                                <option value="gpt-4o-mini">gpt-4o-mini</option>
+                                <option value="gpt-4o">gpt-4o</option>
+                                <option value="o3-mini">o3-mini</option>
+                            </select>
+                        </div>
+                        <div class="field">
+                            <label for="language">IDIOMA</label>
+                            <select id="language">
+                                <option value="Spanish">Español</option>
+                                <option value="English">Inglés</option>
+                                <option value="Italian">Italiano</option>
+                                <option value="French">Francés</option>
+                            </select>
+                        </div>
                     </div>
                     <div class="row">
                         <div class="field">
@@ -97,18 +136,12 @@
                             <input type="number" id="temperature" step="0.1" value="0.8">
                         </div>
                         <div class="field">
-                            <label for="maxTokens">MAX TOKENS</label>
+                            <label for="maxTokens">TOKENS</label>
                             <input type="number" id="maxTokens" value="400">
                         </div>
                     </div>
-                </div>
-
-                <div class="card">
-                    <header>
-                        <h3>OPCIONES EXTRA</h3>
-                    </header>
                     <div class="field">
-                        <label for="reminderText">TEXTO RECORDATORIO</label>
+                        <label for="reminderText">TEXTO RECORDATORIO (SILENCIO)</label>
                         <input type="text" id="reminderText">
                     </div>
                     <button class="btn-danger" id="deleteBtn">ELIMINAR AGENTE</button>
@@ -118,8 +151,9 @@
 
         <main id="emptyArea">
             <div class="empty-state">
-                <p>Selecciona un agente o crea uno nuevo para empezar.</p>
-                <button onclick="createNewAgent()">NUEVO AGENTE</button>
+                <div class="brand" style="font-size: 3rem; margin-bottom: 2rem;">CLINIBOT</div>
+                <p>Selecciona un agente o crea uno nuevo para empezar a construir.</p>
+                <button onclick="createNewAgent()">+ CREAR NUEVO AGENTE</button>
             </div>
         </main>
     </div>
@@ -176,6 +210,13 @@
                 document.getElementById('maxTokens').value = agent.max_tokens || 400;
                 document.getElementById('reminderText').value = agent.reminder_text || '';
 
+                // New fields
+                document.getElementById('knowledgeBase').value = agent.knowledge_base || '';
+                document.getElementById('webhookUrl').value = agent.webhook_url || '';
+                document.getElementById('hangupPhrases').value = agent.hangup_phrases || '';
+                document.getElementById('extractionFields').value = agent.extraction_fields || '';
+                document.getElementById('language').value = agent.language || 'Spanish';
+
                 const wsBase = window.location.origin.replace('http', 'ws');
                 document.getElementById('retellUrl').value = `${wsBase}/llm-websocket/${agent.id}/[CALL_ID]`;
 
@@ -196,6 +237,12 @@
             document.getElementById('temperature').value = 0.8;
             document.getElementById('maxTokens').value = 400;
             document.getElementById('reminderText').value = '';
+            document.getElementById('knowledgeBase').value = '';
+            document.getElementById('webhookUrl').value = '';
+            document.getElementById('hangupPhrases').value = 'adiós, hasta luego';
+            document.getElementById('extractionFields').value = 'nombre, servicio';
+            document.getElementById('language').value = 'Spanish';
+
             document.getElementById('retellUrl').value = 'Guarda para generar URL';
 
             document.getElementById('editorArea').classList.remove('hidden');
@@ -216,7 +263,13 @@
                 model: document.getElementById('model').value,
                 temperature: parseFloat(document.getElementById('temperature').value),
                 max_tokens: parseInt(document.getElementById('maxTokens').value),
-                reminder_text: document.getElementById('reminderText').value
+                reminder_text: document.getElementById('reminderText').value,
+                // New
+                knowledge_base: document.getElementById('knowledgeBase').value,
+                webhook_url: document.getElementById('webhookUrl').value,
+                hangup_phrases: document.getElementById('hangupPhrases').value,
+                extraction_fields: document.getElementById('extractionFields').value,
+                language: document.getElementById('language').value
             };
 
             try {
