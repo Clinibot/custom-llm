@@ -1,14 +1,16 @@
 :root {
     --primary-blue: #007bff;
     --primary-lilac: #8a2be2;
-    --electric-gradient: linear-gradient(135deg, #2563eb 0%, #7c3aed 40%, #db2777 70%, #f43f5e 100%);
+    --accent-blue: #4f46e5;
+    --accent-lilac: #8b5cf6;
+    --subtle-gradient: linear-gradient(135deg, #6366f1 0%, #a855f7 100%);
     --bg-main: #fcfdfe;
     --bg-sidebar: #ffffff;
     --bg-card: #ffffff;
     --text-main: #0f172a;
     --text-muted: #64748b;
     --border: #f1f5f9;
-    --accent: #2563eb;
+    --accent: #6366f1;
     --font-main: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
     --font-mono: 'JetBrains Mono', monospace;
     --radius: 8px;
@@ -52,31 +54,23 @@ aside {
 }
 
 .brand {
-    font-size: 1.15rem;
-    font-weight: 900;
-    letter-spacing: -0.04em;
-    background: var(--electric-gradient);
-    background-size: 200% auto;
-    -webkit-background-clip: text;
-    background-clip: text;
-    -webkit-text-fill-color: transparent;
+    font-size: 1.1rem;
+    font-weight: 800;
+    letter-spacing: -0.02em;
+    color: var(--text-main);
     margin-bottom: 24px;
     text-transform: uppercase;
-    animation: gradientFlow 5s ease infinite;
+    display: flex;
+    align-items: center;
+    gap: 10px;
 }
 
-@keyframes gradientFlow {
-    0% {
-        background-position: 0% 50%;
-    }
-
-    50% {
-        background-position: 100% 50%;
-    }
-
-    100% {
-        background-position: 0% 50%;
-    }
+.brand::before {
+    content: '';
+    width: 4px;
+    height: 16px;
+    background: var(--subtle-gradient);
+    border-radius: 4px;
 }
 
 .agent-list-header {
@@ -113,9 +107,10 @@ nav#agentList {
 }
 
 .nav-item.active {
-    background: var(--electric-gradient);
-    color: white;
-    font-weight: 500;
+    background: #f3f4f6;
+    color: var(--accent);
+    font-weight: 600;
+    box-shadow: inset 3px 0 0 0 var(--accent);
 }
 
 .sidebar-footer {
@@ -261,15 +256,15 @@ button {
 #saveBtn {
     width: 100%;
     padding: 12px;
-    background: var(--electric-gradient);
+    background: var(--text-main);
     color: white;
     border: none;
     font-size: 0.875rem;
 }
 
 #saveBtn:hover {
-    transform: translateY(-1px);
-    box-shadow: 0 4px 12px rgba(79, 70, 229, 0.3);
+    background: #000;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
 }
 
 .btn-secondary {
@@ -447,7 +442,7 @@ button {
 }
 
 .step-num {
-    background: var(--electric-gradient);
+    background: var(--subtle-gradient);
     color: white;
     width: 24px;
     height: 24px;
