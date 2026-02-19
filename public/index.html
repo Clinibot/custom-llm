@@ -4,14 +4,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Configuración de Agente | Clinibot</title>
+    <title>Constructor de Agentes | Clinibot</title>
     <link rel="stylesheet" href="style.css">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link
         href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=JetBrains+Mono:wght@400&display=swap"
         rel="stylesheet">
-    <!-- CodeMirror for the editor -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/6.65.7/codemirror.min.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/6.65.7/theme/neo.min.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/6.65.7/codemirror.min.js"></script>
@@ -23,10 +22,12 @@
         <aside>
             <div class="sidebar-content">
                 <div class="brand">CLINIBOT</div>
-                <nav>
-                    <div class="nav-item active">GENERAL</div>
-                    <div class="nav-item">LLAMADA</div>
-                    <div class="nav-item">MODELO</div>
+                <div class="agent-list-header">
+                    <span>MIS AGENTES</span>
+                    <button id="newAgentBtn" class="btn-icon">+</button>
+                </div>
+                <nav id="agentList">
+                    <!-- Agents will be listed here -->
                 </nav>
                 <div class="sidebar-footer">
                     <button id="saveBtn">GUARDAR CAMBIOS</button>
@@ -35,11 +36,18 @@
             </div>
         </aside>
 
-        <main>
+        <main id="editorArea" class="hidden">
+            <section class="agent-header">
+                <div class="field">
+                    <label for="agentName">NOMBRE DEL AGENTE</label>
+                    <input type="text" id="agentName" class="input-large">
+                </div>
+            </section>
+
             <section>
                 <header>
                     <h2>SYSTEM PROMPT</h2>
-                    <p>Define la identidad, el comportamiento y el conocimiento del agente.</p>
+                    <p>Identidad y comportamiento del agente.</p>
                 </header>
                 <div class="editor-container">
                     <textarea id="systemPrompt"></textarea>
@@ -49,49 +57,78 @@
             <section class="grid">
                 <div class="card">
                     <header>
-                        <h3>CONFIGURACIÓN DE LLAMADA</h3>
+                        <h3>INTEGRACIÓN RETELL AI</h3>
+                        <p>Copia este enlace en "Custom LLM URL".</p>
                     </header>
                     <div class="field">
-                        <label for="greeting">SALUDO INICIAL</label>
-                        <input type="text" id="greeting" placeholder="Hola, ¿en qué puedo ayudarte?">
-                    </div>
-                    <div class="field">
-                        <label for="reminderText">RECORDATORIO (SILENCIO)</label>
-                        <input type="text" id="reminderText" placeholder="Texto sugerido si el usuario calla...">
+                        <label>WEBSOCKET URL</label>
+                        <div class="url-copy-wrapper">
+                            <input type="text" id="retellUrl" readonly>
+                            <button class="btn-secondary" onclick="copyUrl()">COPIAR</button>
+                        </div>
                     </div>
                 </div>
 
                 <div class="card">
                     <header>
-                        <h3>PARÁMETROS DEL MODELO</h3>
+                        <h3>CONFIGURACIÓN LLAMADA</h3>
+                    </header>
+                    <div class="field">
+                        <label for="greeting">SALUDO INICIAL</label>
+                        <input type="text" id="greeting">
+                    </div>
+                </div>
+
+                <div class="card">
+                    <header>
+                        <h3>PARÁMETROS MODELO</h3>
                     </header>
                     <div class="field">
                         <label for="model">MODELO AI</label>
                         <select id="model">
-                            <option value="gpt-4o-mini">gpt-4o-mini (Voz / Rápido)</option>
-                            <option value="gpt-4o">gpt-4o (Inteligencia superior)</option>
-                            <option value="o3-mini">o3-mini (Razonamiento)</option>
+                            <option value="gpt-4o-mini">gpt-4o-mini</option>
+                            <option value="gpt-4o">gpt-4o</option>
+                            <option value="o3-mini">o3-mini</option>
                         </select>
                     </div>
                     <div class="row">
                         <div class="field">
-                            <label for="temperature">CREATIVIDAD (TEMP)</label>
-                            <input type="number" id="temperature" step="0.1" min="0" max="2" value="0.8">
+                            <label for="temperature">TEMP</label>
+                            <input type="number" id="temperature" step="0.1" value="0.8">
                         </div>
                         <div class="field">
                             <label for="maxTokens">MAX TOKENS</label>
-                            <input type="number" id="maxTokens" step="50" min="50" max="2000" value="400">
+                            <input type="number" id="maxTokens" value="400">
                         </div>
                     </div>
                 </div>
+
+                <div class="card">
+                    <header>
+                        <h3>OPCIONES EXTRA</h3>
+                    </header>
+                    <div class="field">
+                        <label for="reminderText">TEXTO RECORDATORIO</label>
+                        <input type="text" id="reminderText">
+                    </div>
+                    <button class="btn-danger" id="deleteBtn">ELIMINAR AGENTE</button>
+                </div>
             </section>
+        </main>
+
+        <main id="emptyArea">
+            <div class="empty-state">
+                <p>Selecciona un agente o crea uno nuevo para empezar.</p>
+                <button onclick="createNewAgent()">NUEVO AGENTE</button>
+            </div>
         </main>
     </div>
 
     <script>
         let editor;
+        let currentAgentId = null;
+        let agents = [];
 
-        // Initialize CodeMirror
         window.addEventListener('DOMContentLoaded', () => {
             editor = CodeMirror.fromTextArea(document.getElementById('systemPrompt'), {
                 mode: 'markdown',
@@ -100,31 +137,80 @@
                 lineWrapping: true,
                 viewportMargin: Infinity
             });
-            loadConfig();
+            loadAgentList();
         });
 
-        async function loadConfig() {
+        async function loadAgentList() {
             try {
-                const res = await fetch('/api/config');
-                const config = await res.json();
-
-                editor.setValue(config.system_prompt || '');
-                document.getElementById('greeting').value = config.greeting || '';
-                document.getElementById('model').value = config.model || 'gpt-4o-mini';
-                document.getElementById('temperature').value = config.temperature ?? 0.8;
-                document.getElementById('maxTokens').value = config.max_tokens || 400;
-                document.getElementById('reminderText').value = config.reminder_text || '';
+                const res = await fetch('/api/agents');
+                agents = await res.json();
+                renderAgentList();
             } catch (err) {
-                showStatus('ERROR AL CARGAR DATOS', 'error');
+                showStatus('ERROR AL CARGAR LISTA', 'error');
             }
         }
 
-        async function saveConfig() {
+        function renderAgentList() {
+            const list = document.getElementById('agentList');
+            list.innerHTML = '';
+            agents.forEach(agent => {
+                const div = document.createElement('div');
+                div.className = `nav-item ${currentAgentId === agent.id ? 'active' : ''}`;
+                div.textContent = agent.name;
+                div.onclick = () => loadAgent(agent.id);
+                list.appendChild(div);
+            });
+        }
+
+        async function loadAgent(id) {
+            currentAgentId = id;
+            try {
+                const res = await fetch(`/api/agents/${id}`);
+                const agent = await res.json();
+
+                document.getElementById('agentName').value = agent.name;
+                editor.setValue(agent.system_prompt || '');
+                document.getElementById('greeting').value = agent.greeting || '';
+                document.getElementById('model').value = agent.model || 'gpt-4o-mini';
+                document.getElementById('temperature').value = agent.temperature ?? 0.8;
+                document.getElementById('maxTokens').value = agent.max_tokens || 400;
+                document.getElementById('reminderText').value = agent.reminder_text || '';
+
+                const wsBase = window.location.origin.replace('http', 'ws');
+                document.getElementById('retellUrl').value = `${wsBase}/llm-websocket/${agent.id}/[CALL_ID]`;
+
+                document.getElementById('editorArea').classList.remove('hidden');
+                document.getElementById('emptyArea').classList.add('hidden');
+                renderAgentList();
+            } catch (err) {
+                showStatus('ERROR AL CARGAR AGENTE', 'error');
+            }
+        }
+
+        function createNewAgent() {
+            currentAgentId = null;
+            document.getElementById('agentName').value = 'Nuevo Agente';
+            editor.setValue('');
+            document.getElementById('greeting').value = 'Hola, ¿en qué puedo ayudarte?';
+            document.getElementById('model').value = 'gpt-4o-mini';
+            document.getElementById('temperature').value = 0.8;
+            document.getElementById('maxTokens').value = 400;
+            document.getElementById('reminderText').value = '';
+            document.getElementById('retellUrl').value = 'Guarda para generar URL';
+
+            document.getElementById('editorArea').classList.remove('hidden');
+            document.getElementById('emptyArea').classList.add('hidden');
+            renderAgentList();
+        }
+
+        async function saveAgent() {
             const btn = document.getElementById('saveBtn');
             btn.disabled = true;
             btn.textContent = 'GUARDANDO...';
 
-            const config = {
+            const agent = {
+                id: currentAgentId,
+                name: document.getElementById('agentName').value,
                 system_prompt: editor.getValue(),
                 greeting: document.getElementById('greeting').value,
                 model: document.getElementById('model').value,
@@ -134,23 +220,44 @@
             };
 
             try {
-                const res = await fetch('/api/config', {
+                const res = await fetch('/api/agents', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(config)
+                    body: JSON.stringify(agent)
                 });
 
-                if (res.ok) {
-                    showStatus('CAMBIOS GUARDADOS', 'success');
-                } else {
-                    showStatus('ERROR AL GUARDAR', 'error');
-                }
+                const savedAgent = await res.json();
+                currentAgentId = savedAgent.id;
+                showStatus('CAMBIOS GUARDADOS', 'success');
+                loadAgentList();
+                loadAgent(currentAgentId);
             } catch (err) {
-                showStatus('ERROR DE CONEXIÓN', 'error');
+                showStatus('ERROR AL GUARDAR', 'error');
             } finally {
                 btn.disabled = false;
                 btn.textContent = 'GUARDAR CAMBIOS';
             }
+        }
+
+        async function deleteAgent() {
+            if (!confirm('¿Seguro que quieres eliminar este agente?')) return;
+            try {
+                await fetch(`/api/agents/${currentAgentId}`, { method: 'DELETE' });
+                currentAgentId = null;
+                document.getElementById('editorArea').classList.add('hidden');
+                document.getElementById('emptyArea').classList.remove('hidden');
+                loadAgentList();
+                showStatus('AGENTE ELIMINADO', 'success');
+            } catch (err) {
+                showStatus('ERROR AL ELIMINAR', 'error');
+            }
+        }
+
+        function copyUrl() {
+            const copyText = document.getElementById("retellUrl");
+            copyText.select();
+            navigator.clipboard.writeText(copyText.value);
+            showStatus('URL COPIADA', 'success');
         }
 
         function showStatus(msg, type) {
@@ -163,7 +270,9 @@
             }, 3000);
         }
 
-        document.getElementById('saveBtn').addEventListener('click', saveConfig);
+        document.getElementById('saveBtn').addEventListener('click', saveAgent);
+        document.getElementById('newAgentBtn').addEventListener('click', createNewAgent);
+        document.getElementById('deleteBtn').addEventListener('click', deleteAgent);
     </script>
 </body>
 

@@ -38,14 +38,14 @@ export class LlmOpenAiClient {
     }
 
     /**
-     * Fetch configuration from Supabase.
+     * Fetch configuration from Supabase for a specific agent.
      */
-    async initialize(): Promise<void> {
+    async initialize(agentId: string): Promise<void> {
         try {
             const { data, error } = await this.supabase
-                .from("config")
+                .from("agents")
                 .select("*")
-                .eq("id", "current")
+                .eq("id", agentId)
                 .single();
 
             if (data && !error) {
@@ -55,10 +55,12 @@ export class LlmOpenAiClient {
                 this.temperature = data.temperature !== undefined ? data.temperature : this.temperature;
                 this.maxTokens = data.max_tokens || this.maxTokens;
                 this.reminderText = data.reminder_text || this.reminderText;
-                console.log("Config loaded from Supabase");
+                console.log(`Config loaded for agent: ${agentId}`);
+            } else {
+                console.log(`Agent ${agentId} not found, using defaults`);
             }
         } catch (err) {
-            console.log("Using default config (Supabase not ready)");
+            console.log("Error loading config from Supabase:", err);
         }
     }
 

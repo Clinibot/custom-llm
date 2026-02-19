@@ -1,17 +1,18 @@
 import dotenv from "dotenv";
 dotenv.config();
 
-import express, { Request, Response } from "express";
+import express, { Request, Response, NextFunction } from "express";
 import { RawData, WebSocket } from "ws";
 import expressWs from "express-ws";
 import { createClient } from "@supabase/supabase-js";
 import path from "path";
+import basicAuth from "express-basic-auth";
 import { LlmOpenAiClient } from "./llm-openai-client";
 import {
     RetellRequest,
     RetellConfigEvent,
     RetellPingPongEvent,
-    BotConfig,
+    Agent,
 } from "./types";
 
 // ============================================================
@@ -23,6 +24,22 @@ const wsInstance = expressWs(app);
 const port = parseInt(process.env.PORT || "8080", 10);
 
 app.use(express.json());
+
+// Basic Auth Configuration
+const auth = basicAuth({
+    users: { 'sonia@sonia.com': 'sonia@sonia.com' },
+    challenge: true,
+    realm: 'Clinibot Builder'
+});
+
+// Protect UI and API routes, but allow /health and websockets
+app.use((req: Request, res: Response, next: NextFunction) => {
+    if (req.path === "/health" || req.path.startsWith("/llm-websocket")) {
+        return next();
+    }
+    return auth(req, res, next);
+});
+
 app.use(express.static(path.join(__dirname, "../public")));
 
 // Supabase client — Ensure SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY are in .env
@@ -34,43 +51,60 @@ const supabase = createClient(supabaseUrl, supabaseKey);
 // API Routes (Frontend)
 // ============================================================
 
-// Get current configuration
-app.get("/api/config", async (_req: Request, res: Response) => {
+// List all agents
+app.get("/api/agents", async (_req: Request, res: Response) => {
     try {
         const { data, error } = await supabase
-            .from("config")
+            .from("agents")
+            .select("id, name")
+            .order("created_at", { ascending: false });
+
+        if (error) throw error;
+        res.json(data);
+    } catch (err) {
+        res.status(500).json({ error: "Failed to list agents" });
+    }
+});
+
+// Get specific agent configuration
+app.get("/api/agents/:id", async (req: Request, res: Response) => {
+    try {
+        const { id } = req.params;
+        const { data, error } = await supabase
+            .from("agents")
             .select("*")
-            .eq("id", "current")
+            .eq("id", id)
             .single();
 
         if (error) throw error;
         res.json(data);
     } catch (err) {
-        // Return defaults if DB is not ready or empty
-        res.json({
-            system_prompt: `## Identity\nYou are a helpful AI assistant for Clinibot...`,
-            greeting: "Hola, ¿en qué puedo ayudarte hoy?",
-            model: "gpt-4o-mini"
-        });
+        res.status(404).json({ error: "Agent not found" });
     }
 });
 
-// Save configuration
-app.post("/api/config", async (req: Request, res: Response) => {
+// Save/Update agent configuration
+app.post("/api/agents", async (req: Request, res: Response) => {
     try {
-        const config: BotConfig = req.body;
-        const { error } = await supabase
-            .from("config")
-            .upsert({ id: "current", ...config });
+        const agent: Agent = req.body;
+        const { data, error } = await supabase
+            .from("agents")
+            .upsert({
+                ...agent,
+                id: agent.id || undefined
+            })
+            .select()
+            .single();
 
         if (error) throw error;
-        res.json({ status: "ok" });
+        res.json(data);
     } catch (err) {
-        console.error("Error saving config:", err);
-        res.status(500).json({ error: "Failed to save config" });
+        console.error("Error saving agent:", err);
+        res.status(500).json({ error: "Failed to save agent" });
     }
 });
 
+// Delete agent
 app.get("/health", (_req: Request, res: Response) => {
     res.json({
         status: "ok",
@@ -79,8 +113,22 @@ app.get("/health", (_req: Request, res: Response) => {
     });
 });
 
+app.delete("/api/agents/:id", async (req: Request, res: Response) => {
+    try {
+        const { id } = req.params;
+        const { error } = await supabase
+            .from("agents")
+            .delete()
+            .eq("id", id);
+
+        if (error) throw error;
+        res.json({ status: "ok" });
+    } catch (err) {
+        res.status(500).json({ error: "Failed to delete agent" });
+    }
+});
+
 // Serve index.html for all other routes (SPA behavior)
-// Place this AFTER all specific API and assets routes
 app.get("*", (_req: Request, res: Response) => {
     res.sendFile(path.join(__dirname, "../public", "index.html"));
 });
@@ -90,18 +138,14 @@ app.get("*", (_req: Request, res: Response) => {
 // ============================================================
 
 wsInstance.app.ws(
-    "/llm-websocket/:call_id",
+    "/llm-websocket/:agent_id/:call_id",
     async (ws: WebSocket, req: Request) => {
-        const callId = req.params.call_id;
-        console.log(`[${callId}] WebSocket connected`);
+        const { agent_id, call_id } = req.params;
+        console.log(`[${call_id}] Agent ${agent_id} connected`);
 
-        // Create a new LLM client for this call
         const llmClient = new LlmOpenAiClient();
+        await llmClient.initialize(agent_id as string);
 
-        // Initialize config from Supabase before starting
-        await llmClient.initialize();
-
-        // --- Send config event ---
         const configEvent: RetellConfigEvent = {
             response_type: "config",
             config: {
@@ -111,25 +155,21 @@ wsInstance.app.ws(
         };
         ws.send(JSON.stringify(configEvent));
 
-        // --- Send begin message (agent speaks first) ---
         llmClient.BeginMessage(ws);
 
-        // --- Handle errors ---
         ws.on("error", (err: Error) => {
-            console.error(`[${callId}] WebSocket error:`, err);
+            console.error(`[${call_id}] WebSocket error:`, err);
         });
 
-        // --- Handle close ---
         ws.on("close", (code: number, reason: Buffer) => {
             console.log(
-                `[${callId}] WebSocket closed — code: ${code}, reason: ${reason.toString()}`
+                `[${call_id}] WebSocket closed — code: ${code}, reason: ${reason.toString()}`
             );
         });
 
-        // --- Handle incoming messages from Retell ---
         ws.on("message", async (data: RawData, isBinary: boolean) => {
             if (isBinary) {
-                console.error(`[${callId}] Received binary message, expected text.`);
+                console.error(`[${call_id}] Received binary message, expected text.`);
                 ws.close(1002, "Expected text message, got binary.");
                 return;
             }
@@ -137,7 +177,6 @@ wsInstance.app.ws(
             try {
                 const request: RetellRequest = JSON.parse(data.toString());
 
-                // Handle ping_pong — echo back timestamp
                 if (request.interaction_type === "ping_pong") {
                     const pong: RetellPingPongEvent = {
                         response_type: "ping_pong",
@@ -147,16 +186,14 @@ wsInstance.app.ws(
                     return;
                 }
 
-                // Handle call_details — log and ignore
                 if (request.interaction_type === "call_details") {
-                    console.log(`[${callId}] Call details received:`, request.call);
+                    console.log(`[${call_id}] Call details received:`, request.call);
                     return;
                 }
 
-                // Handle update_only, response_required, reminder_required
                 llmClient.DraftResponse(request, ws);
             } catch (err) {
-                console.error(`[${callId}] Error parsing message:`, err);
+                console.error(`[${call_id}] Error parsing message:`, err);
                 ws.close(1002, "Cannot parse incoming message.");
             }
         });
@@ -169,8 +206,4 @@ wsInstance.app.ws(
 
 app.listen(port, () => {
     console.log(`🚀 Retell Custom LLM server listening on port ${port}`);
-    console.log(`   Health check: http://localhost:${port}/`);
-    console.log(
-        `   WebSocket:    ws://localhost:${port}/llm-websocket/{call_id}`
-    );
 });
