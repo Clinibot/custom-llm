@@ -1,108 +1,170 @@
 <!DOCTYPE html>
 <html lang="es">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Configuración Clinibot</title>
+    <title>Configuración de Agente | Clinibot</title>
     <link rel="stylesheet" href="style.css">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500&display=swap" rel="stylesheet">
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=JetBrains+Mono:wght@400&display=swap"
+        rel="stylesheet">
+    <!-- CodeMirror for the editor -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/6.65.7/codemirror.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/6.65.7/theme/neo.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/6.65.7/codemirror.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/6.65.7/mode/markdown/markdown.min.js"></script>
 </head>
+
 <body>
-    <div class="container">
-        <header>
-            <h1>CONFIGURACIÓN</h1>
-        </header>
+    <div class="layout">
+        <aside>
+            <div class="sidebar-content">
+                <div class="brand">CLINIBOT</div>
+                <nav>
+                    <div class="nav-item active">GENERAL</div>
+                    <div class="nav-item">LLAMADA</div>
+                    <div class="nav-item">MODELO</div>
+                </nav>
+                <div class="sidebar-footer">
+                    <button id="saveBtn">GUARDAR CAMBIOS</button>
+                    <div id="status" class="status"></div>
+                </div>
+            </div>
+        </aside>
 
         <main>
-            <div class="field">
-                <label for="systemPrompt">SYSTEM PROMPT</label>
-                <textarea id="systemPrompt" placeholder="Define la personalidad..."></textarea>
-            </div>
+            <section>
+                <header>
+                    <h2>SYSTEM PROMPT</h2>
+                    <p>Define la identidad, el comportamiento y el conocimiento del agente.</p>
+                </header>
+                <div class="editor-container">
+                    <textarea id="systemPrompt"></textarea>
+                </div>
+            </section>
 
-            <div class="field">
-                <label for="greeting">SALUDO INICIAL</label>
-                <input type="text" id="greeting" placeholder="Ej: Hola, ¿cómo puedo ayudarte?">
-            </div>
+            <section class="grid">
+                <div class="card">
+                    <header>
+                        <h3>CONFIGURACIÓN DE LLAMADA</h3>
+                    </header>
+                    <div class="field">
+                        <label for="greeting">SALUDO INICIAL</label>
+                        <input type="text" id="greeting" placeholder="Hola, ¿en qué puedo ayudarte?">
+                    </div>
+                    <div class="field">
+                        <label for="reminderText">RECORDATORIO (SILENCIO)</label>
+                        <input type="text" id="reminderText" placeholder="Texto sugerido si el usuario calla...">
+                    </div>
+                </div>
 
-            <div class="field">
-                <label for="model">MODELO AI</label>
-                <select id="model">
-                    <option value="gpt-4o-mini">gpt-4o-mini (Recomendado)</option>
-                    <option value="gpt-4o">gpt-4o (Más inteligente)</option>
-                    <option value="gpt-3.5-turbo">gpt-3.5-turbo</option>
-                </select>
-            </div>
-
-            <div class="actions">
-                <button id="saveBtn">GUARDAR CAMBIOS</button>
-            </div>
-
-            <div id="status" class="status"></div>
+                <div class="card">
+                    <header>
+                        <h3>PARÁMETROS DEL MODELO</h3>
+                    </header>
+                    <div class="field">
+                        <label for="model">MODELO AI</label>
+                        <select id="model">
+                            <option value="gpt-4o-mini">gpt-4o-mini (Voz / Rápido)</option>
+                            <option value="gpt-4o">gpt-4o (Inteligencia superior)</option>
+                            <option value="o3-mini">o3-mini (Razonamiento)</option>
+                        </select>
+                    </div>
+                    <div class="row">
+                        <div class="field">
+                            <label for="temperature">CREATIVIDAD (TEMP)</label>
+                            <input type="number" id="temperature" step="0.1" min="0" max="2" value="0.8">
+                        </div>
+                        <div class="field">
+                            <label for="maxTokens">MAX TOKENS</label>
+                            <input type="number" id="maxTokens" step="50" min="50" max="2000" value="400">
+                        </div>
+                    </div>
+                </div>
+            </section>
         </main>
     </div>
 
     <script>
-        const systemPromptInput = document.getElementById('systemPrompt');
-        const greetingInput = document.getElementById('greeting');
-        const modelInput = document.getElementById('model');
-        const saveBtn = document.getElementById('saveBtn');
-        const statusEl = document.getElementById('status');
+        let editor;
 
-        // Fetch current config
+        // Initialize CodeMirror
+        window.addEventListener('DOMContentLoaded', () => {
+            editor = CodeMirror.fromTextArea(document.getElementById('systemPrompt'), {
+                mode: 'markdown',
+                theme: 'neo',
+                lineNumbers: true,
+                lineWrapping: true,
+                viewportMargin: Infinity
+            });
+            loadConfig();
+        });
+
         async function loadConfig() {
             try {
                 const res = await fetch('/api/config');
                 const config = await res.json();
-                
-                systemPromptInput.value = config.system_prompt || '';
-                greetingInput.value = config.greeting || '';
-                modelInput.value = config.model || 'gpt-4o-mini';
+
+                editor.setValue(config.system_prompt || '');
+                document.getElementById('greeting').value = config.greeting || '';
+                document.getElementById('model').value = config.model || 'gpt-4o-mini';
+                document.getElementById('temperature').value = config.temperature ?? 0.8;
+                document.getElementById('maxTokens').value = config.max_tokens || 400;
+                document.getElementById('reminderText').value = config.reminder_text || '';
             } catch (err) {
-                showStatus('Error al cargar la configuración', 'error');
+                showStatus('ERROR AL CARGAR DATOS', 'error');
             }
         }
 
         async function saveConfig() {
-            saveBtn.disabled = true;
-            saveBtn.textContent = 'GUARDANDO...';
-            
+            const btn = document.getElementById('saveBtn');
+            btn.disabled = true;
+            btn.textContent = 'GUARDANDO...';
+
+            const config = {
+                system_prompt: editor.getValue(),
+                greeting: document.getElementById('greeting').value,
+                model: document.getElementById('model').value,
+                temperature: parseFloat(document.getElementById('temperature').value),
+                max_tokens: parseInt(document.getElementById('maxTokens').value),
+                reminder_text: document.getElementById('reminderText').value
+            };
+
             try {
                 const res = await fetch('/api/config', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        system_prompt: systemPromptInput.value,
-                        greeting: greetingInput.value,
-                        model: modelInput.value
-                    })
+                    body: JSON.stringify(config)
                 });
 
                 if (res.ok) {
-                    showStatus('Configuración guardada correctamente', 'success');
+                    showStatus('CAMBIOS GUARDADOS', 'success');
                 } else {
-                    showStatus('Error al guardar', 'error');
+                    showStatus('ERROR AL GUARDAR', 'error');
                 }
             } catch (err) {
-                showStatus('Error de conexión', 'error');
+                showStatus('ERROR DE CONEXIÓN', 'error');
             } finally {
-                saveBtn.disabled = false;
-                saveBtn.textContent = 'GUARDAR CAMBIOS';
+                btn.disabled = false;
+                btn.textContent = 'GUARDAR CAMBIOS';
             }
         }
 
         function showStatus(msg, type) {
-            statusEl.textContent = msg;
-            statusEl.className = 'status ' + type;
+            const el = document.getElementById('status');
+            el.textContent = msg;
+            el.className = 'status ' + type;
             setTimeout(() => {
-                statusEl.textContent = '';
-                statusEl.className = 'status';
+                el.textContent = '';
+                el.className = 'status';
             }, 3000);
         }
 
-        saveBtn.addEventListener('click', saveConfig);
-        window.addEventListener('DOMContentLoaded', loadConfig);
+        document.getElementById('saveBtn').addEventListener('click', saveConfig);
     </script>
 </body>
+
 </html>

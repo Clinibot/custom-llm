@@ -14,6 +14,9 @@ export class LlmOpenAiClient {
     private systemPrompt: string;
     private greeting: string;
     private model: string;
+    private temperature: number;
+    private maxTokens: number;
+    private reminderText: string;
     private supabase: any;
 
     constructor() {
@@ -29,6 +32,9 @@ export class LlmOpenAiClient {
         this.systemPrompt = `## Identity\nYou are a helpful AI assistant for Clinibot...`;
         this.greeting = "Hola, ¿en qué puedo ayudarte hoy?";
         this.model = "gpt-4o-mini";
+        this.temperature = 0.8;
+        this.maxTokens = 400;
+        this.reminderText = "(The user has been silent for a while. Send a brief, friendly follow-up.)";
     }
 
     /**
@@ -46,6 +52,9 @@ export class LlmOpenAiClient {
                 this.systemPrompt = data.system_prompt || this.systemPrompt;
                 this.greeting = data.greeting || this.greeting;
                 this.model = data.model || this.model;
+                this.temperature = data.temperature !== undefined ? data.temperature : this.temperature;
+                this.maxTokens = data.max_tokens || this.maxTokens;
+                this.reminderText = data.reminder_text || this.reminderText;
                 console.log("Config loaded from Supabase");
             }
         } catch (err) {
@@ -93,7 +102,7 @@ export class LlmOpenAiClient {
         if (request.interaction_type === "reminder_required") {
             messages.push({
                 role: "user",
-                content: "(The user has been silent for a while. Send a brief, friendly follow-up.)",
+                content: this.reminderText,
             });
         }
 
@@ -101,8 +110,8 @@ export class LlmOpenAiClient {
             const stream = await this.openaiClient.chat.completions.create({
                 model: this.model as any,
                 messages: messages,
-                temperature: 0.8,
-                max_tokens: 400,
+                temperature: this.temperature,
+                max_tokens: this.maxTokens,
                 stream: true,
             });
 

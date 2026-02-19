@@ -89,4 +89,7 @@ export interface BotConfig {
     system_prompt: string;
     greeting: string;
     model: string;
+    temperature: number;
+    max_tokens: number;
+    reminder_text: string;
 }
