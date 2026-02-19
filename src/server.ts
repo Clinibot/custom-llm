@@ -108,6 +108,7 @@ app.post("/api/agents", async (req: Request, res: Response) => {
 app.get("/health", (_req: Request, res: Response) => {
     res.json({
         status: "ok",
+        version: "v2.0.0",
         service: "Retell Custom LLM WebSocket Server",
         timestamp: new Date().toISOString(),
     });
