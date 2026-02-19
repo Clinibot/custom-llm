@@ -1,7 +1,7 @@
 :root {
     --primary-blue: #007bff;
     --primary-lilac: #8a2be2;
-    --electric-gradient: linear-gradient(135deg, #2563eb 0%, #7c3aed 50%, #db2777 100%);
+    --electric-gradient: linear-gradient(135deg, #2563eb 0%, #7c3aed 40%, #db2777 70%, #f43f5e 100%);
     --bg-main: #fcfdfe;
     --bg-sidebar: #ffffff;
     --bg-card: #ffffff;
@@ -52,15 +52,31 @@ aside {
 }
 
 .brand {
-    font-size: 1.1rem;
+    font-size: 1.15rem;
     font-weight: 900;
-    letter-spacing: -0.03em;
+    letter-spacing: -0.04em;
     background: var(--electric-gradient);
+    background-size: 200% auto;
     -webkit-background-clip: text;
     background-clip: text;
     -webkit-text-fill-color: transparent;
     margin-bottom: 24px;
     text-transform: uppercase;
+    animation: gradientFlow 5s ease infinite;
+}
+
+@keyframes gradientFlow {
+    0% {
+        background-position: 0% 50%;
+    }
+
+    50% {
+        background-position: 100% 50%;
+    }
+
+    100% {
+        background-position: 0% 50%;
+    }
 }
 
 .agent-list-header {
@@ -351,6 +367,7 @@ button {
 .chevron.rotated {
     transform: rotate(180deg);
 }
+
 /* RAG Help Modal & Info Trigger */
 .info-trigger {
     cursor: pointer;
@@ -359,6 +376,7 @@ button {
     align-items: center;
     transition: color 0.2s;
 }
+
 .info-trigger:hover {
     color: var(--accent);
 }
@@ -388,8 +406,15 @@ button {
 }
 
 @keyframes modalIn {
-    from { opacity: 0; transform: translateY(20px); }
-    to { opacity: 1; transform: translateY(0); }
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
 }
 
 .modal-header {
