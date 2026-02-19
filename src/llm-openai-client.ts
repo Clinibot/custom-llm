@@ -100,7 +100,7 @@ export class LlmOpenAiClient {
                 query_embedding: embedding,
                 match_threshold: 0.5,
                 match_count: 3,
-                filter_agent_id: this.agentId
+                filter_kb_id: this.knowledgeBase
             });
 
             if (error || !data) return "";
