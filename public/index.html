@@ -4,13 +4,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Constructor de Agentes Pro | Clinibot</title>
+    <title>Constructor de Agentes | Clinibot</title>
     <link rel="stylesheet" href="style.css">
     <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link
-        href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=JetBrains+Mono:wght@400&display=swap"
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400&display=swap"
         rel="stylesheet">
+    <!-- CodeMirror -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/6.65.7/codemirror.min.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/6.65.7/theme/neo.min.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/6.65.7/codemirror.min.js"></script>
@@ -19,101 +19,121 @@
 
 <body>
     <div class="layout">
+        <!-- Sidebar - Agent List -->
         <aside>
-            <div class="sidebar-content">
+            <div class="sidebar-header">
                 <div class="brand">CLINIBOT</div>
                 <div class="agent-list-header">
-                    <span>MIS AGENTES</span>
-                    <button id="newAgentBtn" class="btn-icon">+</button>
+                    <span>Mis Agentes</span>
+                    <button id="newAgentBtn" class="btn-icon" title="Nuevo Agente">+</button>
                 </div>
-                <nav id="agentList">
-                    <!-- Agents will be listed here -->
-                </nav>
-                <div class="sidebar-footer">
-                    <button id="saveBtn">GUARDAR CAMBIOS</button>
-                    <div id="status" class="status"></div>
-                </div>
+            </div>
+            <nav id="agentList">
+                <!-- Fetching agents... -->
+            </nav>
+            <div class="sidebar-footer">
+                <button id="saveBtn">GUARDAR CAMBIOS</button>
+                <div id="status" class="status"></div>
             </div>
         </aside>
 
-        <main id="editorArea" class="hidden">
-            <section class="agent-header">
-                <div class="field">
-                    <label for="agentName">NOMBRE DEL AGENTE</label>
-                    <input type="text" id="agentName" class="input-large">
-                </div>
-            </section>
+        <!-- Main Editor (Prompt) -->
+        <main id="editorArea" class="editor-pane hidden">
+            <header class="agent-header">
+                <div class="section-label">Nombre del Agente</div>
+                <input type="text" id="agentName" class="input-large" placeholder="Escribe un nombre...">
+            </header>
 
             <section>
-                <header>
-                    <h2>SYSTEM PROMPT</h2>
-                    <p>Identidad y comportamiento central.</p>
-                </header>
+                <div class="section-label">System Prompt</div>
                 <div class="editor-container">
                     <textarea id="systemPrompt"></textarea>
                 </div>
             </section>
 
-            <section class="grid">
-                <!-- RAG & LOGIC -->
-                <div class="card">
-                    <header>
-                        <h3>CEREBRO & RAG</h3>
-                        <p>Mejora la inteligencia del bot.</p>
-                    </header>
+            <section>
+                <div class="section-label">Saludo Inicial</div>
+                <input type="text" id="greeting" placeholder="Hola, ¿cómo puedo ayudarte?">
+            </section>
+        </main>
+
+        <!-- Settings Pane (Right) -->
+        <div id="settingsArea" class="settings-pane hidden">
+            <!-- Knowledge Base -->
+            <div class="card">
+                <div class="card-header" onclick="toggleAccordion('kb-content', this)">
+                    <h3>Brain & RAG</h3>
+                    <svg class="chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                        stroke-width="2">
+                        <path d="M6 9l6 6 6-6" />
+                    </svg>
+                </div>
+                <div id="kb-content" class="card-content accordion-content active">
                     <div class="field">
-                        <label for="knowledgeBase">ID BASE DE CONOCIMIENTO (Supabase)</label>
-                        <input type="text" id="knowledgeBase" placeholder="Ej: clinica_dental_faq">
+                        <label>ID Base de Conocimientos</label>
+                        <input type="text" id="knowledgeBase" placeholder="ID de Supabase">
                     </div>
                     <div class="field">
-                        <label for="extractionFields">DATOS A EXTRAER (Separados por coma)</label>
+                        <label>Datos a extraer</label>
                         <input type="text" id="extractionFields" placeholder="nombre, servicio, email">
                     </div>
                 </div>
+            </div>
 
-                <!-- ACTIONS -->
-                <div class="card">
-                    <header>
-                        <h3>AUTOMATIZACIÓN</h3>
-                        <p>Cierre y notificaciones.</p>
-                    </header>
+            <!-- Automation -->
+            <div class="card">
+                <div class="card-header" onclick="toggleAccordion('auto-content', this)">
+                    <h3>Automatización</h3>
+                    <svg class="chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                        stroke-width="2">
+                        <path d="M6 9l6 6 6-6" />
+                    </svg>
+                </div>
+                <div id="auto-content" class="card-content accordion-content">
                     <div class="field">
-                        <label for="hangupPhrases">FRASES DE CIERRE (Cuelga la llamada)</label>
-                        <input type="text" id="hangupPhrases" placeholder="adiós, hasta luego, buen día">
+                        <label>Frases de cierre (cuelga)</label>
+                        <input type="text" id="hangupPhrases" placeholder="adiós, hasta luego">
                     </div>
                     <div class="field">
-                        <label for="webhookUrl">WEBHOOK LEAD CAPTURE (Zapier/Make)</label>
+                        <label>Webhook URL (Zapier/Make)</label>
                         <input type="text" id="webhookUrl" placeholder="https://hook.make.com/...">
                     </div>
                 </div>
+            </div>
 
-                <!-- RETELL -->
-                <div class="card">
-                    <header>
-                        <h3>INTEGRACIÓN RETELL AI</h3>
-                        <p>Custom LLM URL.</p>
-                    </header>
+            <!-- Integration -->
+            <div class="card">
+                <div class="card-header" onclick="toggleAccordion('retell-content', this)">
+                    <h3>Retell AI Integration</h3>
+                    <svg class="chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                        stroke-width="2">
+                        <path d="M6 9l6 6 6-6" />
+                    </svg>
+                </div>
+                <div id="retell-content" class="card-content accordion-content active">
                     <div class="field">
-                        <label>WEBSOCKET URL</label>
+                        <label>Custom LLM URL</label>
                         <div class="url-copy-wrapper">
                             <input type="text" id="retellUrl" readonly>
                             <button class="btn-secondary" onclick="copyUrl()">COPIAR</button>
                         </div>
                     </div>
-                    <div class="field">
-                        <label for="greeting">SALUDO INICIAL</label>
-                        <input type="text" id="greeting">
-                    </div>
                 </div>
+            </div>
 
-                <!-- LLM PARAMS -->
-                <div class="card">
-                    <header>
-                        <h3>PARÁMETROS MODELO</h3>
-                    </header>
+            <!-- Model Parameters -->
+            <div class="card">
+                <div class="card-header" onclick="toggleAccordion('model-content', this)">
+                    <h3>Modelo y Parámetros</h3>
+                    <svg class="chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                        stroke-width="2">
+                        <path d="M6 9l6 6 6-6" />
+                    </svg>
+                </div>
+                <div id="model-content" class="card-content accordion-content">
                     <div class="row">
                         <div class="field">
-                            <label for="model">MODELO</label>
+                            <label>Modelo</label>
                             <select id="model">
                                 <option value="gpt-4o-mini">gpt-4o-mini</option>
                                 <option value="gpt-4o">gpt-4o</option>
@@ -121,40 +141,41 @@
                             </select>
                         </div>
                         <div class="field">
-                            <label for="language">IDIOMA</label>
+                            <label>Idioma</label>
                             <select id="language">
                                 <option value="Spanish">Español</option>
                                 <option value="English">Inglés</option>
-                                <option value="Italian">Italiano</option>
-                                <option value="French">Francés</option>
                             </select>
                         </div>
                     </div>
                     <div class="row">
                         <div class="field">
-                            <label for="temperature">TEMP</label>
+                            <label>Temp</label>
                             <input type="number" id="temperature" step="0.1" value="0.8">
                         </div>
                         <div class="field">
-                            <label for="maxTokens">TOKENS</label>
+                            <label>Max Tokens</label>
                             <input type="number" id="maxTokens" value="400">
                         </div>
                     </div>
                     <div class="field">
-                        <label for="reminderText">TEXTO RECORDATORIO (SILENCIO)</label>
+                        <label>Texto recordatorio (silencio)</label>
                         <input type="text" id="reminderText">
                     </div>
-                    <button class="btn-danger" id="deleteBtn">ELIMINAR AGENTE</button>
                 </div>
-            </section>
-        </main>
-
-        <main id="emptyArea">
-            <div class="empty-state">
-                <div class="brand" style="font-size: 3rem; margin-bottom: 2rem;">CLINIBOT</div>
-                <p>Selecciona un agente o crea uno nuevo para empezar a construir.</p>
-                <button onclick="createNewAgent()">+ CREAR NUEVO AGENTE</button>
             </div>
+
+            <button class="btn-danger" id="deleteBtn">ELIMINAR AGENTE</button>
+        </div>
+
+        <!-- Empty State -->
+        <main id="emptyArea" class="empty-pane">
+            <div class="brand" style="font-size: 3.5rem; margin-bottom: 2rem;">CLINIBOT</div>
+            <p style="color: var(--text-muted); margin-bottom: 32px; font-size: 1.1rem;">Selecciona un agente de la
+                lista o crea uno nuevo para empezar.</p>
+            <button onclick="createNewAgent()"
+                style="width: auto; padding: 14px 28px; background: var(--electric-gradient); color: white; border: none; font-weight: 600;">+
+                CREAR NUEVO AGENTE</button>
         </main>
     </div>
 
@@ -173,6 +194,13 @@
             });
             loadAgentList();
         });
+
+        function toggleAccordion(id, header) {
+            const content = document.getElementById(id);
+            const chevron = header.querySelector('.chevron');
+            content.classList.toggle('active');
+            chevron.classList.toggle('rotated');
+        }
 
         async function loadAgentList() {
             try {
@@ -209,8 +237,6 @@
                 document.getElementById('temperature').value = agent.temperature ?? 0.8;
                 document.getElementById('maxTokens').value = agent.max_tokens || 400;
                 document.getElementById('reminderText').value = agent.reminder_text || '';
-
-                // New fields
                 document.getElementById('knowledgeBase').value = agent.knowledge_base || '';
                 document.getElementById('webhookUrl').value = agent.webhook_url || '';
                 document.getElementById('hangupPhrases').value = agent.hangup_phrases || '';
@@ -221,6 +247,7 @@
                 document.getElementById('retellUrl').value = `${wsBase}/llm-websocket/${agent.id}/[CALL_ID]`;
 
                 document.getElementById('editorArea').classList.remove('hidden');
+                document.getElementById('settingsArea').classList.remove('hidden');
                 document.getElementById('emptyArea').classList.add('hidden');
                 renderAgentList();
             } catch (err) {
@@ -239,13 +266,13 @@
             document.getElementById('reminderText').value = '';
             document.getElementById('knowledgeBase').value = '';
             document.getElementById('webhookUrl').value = '';
-            document.getElementById('hangupPhrases').value = 'adiós, hasta luego';
-            document.getElementById('extractionFields').value = 'nombre, servicio';
+            document.getElementById('hangupPhrases').value = '';
+            document.getElementById('extractionFields').value = '';
             document.getElementById('language').value = 'Spanish';
-
             document.getElementById('retellUrl').value = 'Guarda para generar URL';
 
             document.getElementById('editorArea').classList.remove('hidden');
+            document.getElementById('settingsArea').classList.remove('hidden');
             document.getElementById('emptyArea').classList.add('hidden');
             renderAgentList();
         }
@@ -264,7 +291,6 @@
                 temperature: parseFloat(document.getElementById('temperature').value),
                 max_tokens: parseInt(document.getElementById('maxTokens').value),
                 reminder_text: document.getElementById('reminderText').value,
-                // New
                 knowledge_base: document.getElementById('knowledgeBase').value,
                 webhook_url: document.getElementById('webhookUrl').value,
                 hangup_phrases: document.getElementById('hangupPhrases').value,
@@ -298,6 +324,7 @@
                 await fetch(`/api/agents/${currentAgentId}`, { method: 'DELETE' });
                 currentAgentId = null;
                 document.getElementById('editorArea').classList.add('hidden');
+                document.getElementById('settingsArea').classList.add('hidden');
                 document.getElementById('emptyArea').classList.remove('hidden');
                 loadAgentList();
                 showStatus('AGENTE ELIMINADO', 'success');
