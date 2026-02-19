@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Constructor de Agentes Pro | Clinibot</title>
+    <title>IA al Teléfono | Constructor de Agentes</title>
     <link rel="stylesheet" href="style.css">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link
@@ -22,7 +22,7 @@
         <!-- Sidebar - Agent List -->
         <aside>
             <div class="sidebar-header">
-                <div class="brand">CLINIBOT</div>
+                <div class="brand">IA AL TELÉFONO</div>
                 <div class="agent-list-header">
                     <span>Mis Agentes</span>
                     <button id="newAgentBtn" class="btn-icon" title="Nuevo Agente">+</button>
@@ -42,6 +42,7 @@
             <header class="agent-header">
                 <div class="section-label">Nombre del Agente</div>
                 <input type="text" id="agentName" class="input-large" placeholder="Escribe un nombre...">
+                <div id="agentMetadata" style="font-size: 0.75rem; color: var(--text-muted); margin-top: 4px;"></div>
             </header>
 
             <section>
@@ -73,9 +74,61 @@
                         <label>ID Base de Conocimientos</label>
                         <input type="text" id="knowledgeBase" placeholder="ID de Supabase">
                     </div>
+                </div>
+            </div>
+
+            <!-- Call Settings -->
+            <div class="card">
+                <div class="card-header" onclick="toggleAccordion('call-settings-content', this)">
+                    <h3>Call Settings</h3>
+                    <svg class="chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                        stroke-width="2">
+                        <path d="M6 9l6 6 6-6" />
+                    </svg>
+                </div>
+                <div id="call-settings-content" class="card-content accordion-content">
                     <div class="field">
-                        <label>Datos a extraer</label>
-                        <input type="text" id="extractionFields" placeholder="nombre, servicio, email">
+                        <label>End Call on Silence (ms)</label>
+                        <div style="display: flex; align-items: center; gap: 8px;">
+                            <input type="number" id="endCallSilence" value="600000" step="1000">
+                            <span class="unit-label">ms</span>
+                        </div>
+                        <p class="field-desc">Termina si el usuario calla por este tiempo (Def: 10 min)</p>
+                    </div>
+                    <div class="field">
+                        <label>Max Call Duration (ms)</label>
+                        <div style="display: flex; align-items: center; gap: 8px;">
+                            <input type="number" id="maxCallDuration" value="3600000" step="1000">
+                            <span class="unit-label">ms</span>
+                        </div>
+                        <p class="field-desc">Duración máxima de llamada (Def: 1 h)</p>
+                    </div>
+                    <div class="field">
+                        <label>Ring Duration (s)</label>
+                        <div style="display: flex; align-items: center; gap: 8px;">
+                            <input type="number" id="ringDuration" value="30" min="5" max="90">
+                            <span class="unit-label">s</span>
+                        </div>
+                        <p class="field-desc">Tiempo máx. de timbrado (5s - 90s)</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Data Extraction -->
+            <div class="card">
+                <div class="card-header" onclick="toggleAccordion('extraction-content', this)">
+                    <h3>Post-Call Data Extraction</h3>
+                    <svg class="chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                        stroke-width="2">
+                        <path d="M6 9l6 6 6-6" />
+                    </svg>
+                </div>
+                <div id="extraction-content" class="card-content accordion-content">
+                    <div class="field">
+                        <label>Campos a Recuperar</label>
+                        <textarea id="extractionFields" placeholder="nombre, servicio, email"
+                            style="height: 60px;"></textarea>
+                        <p class="field-desc">Define qué información debe extraer la IA de la voz.</p>
                     </div>
                 </div>
             </div>
@@ -97,6 +150,7 @@
                     <div class="field">
                         <label>Webhook Estadísticas (Make/n8n)</label>
                         <input type="text" id="webhookUrl" placeholder="https://hook.make.com/...">
+                        <p class="field-desc">Solo recibe evento 'call_analyzed'</p>
                     </div>
                 </div>
             </div>
@@ -170,7 +224,7 @@
 
         <!-- Empty State -->
         <main id="emptyArea" class="empty-pane">
-            <div class="brand" style="font-size: 3.5rem; margin-bottom: 2rem;">CLINIBOT</div>
+            <div class="brand" style="font-size: 3.5rem; margin-bottom: 2rem;">IA AL TELÉFONO</div>
             <p style="color: var(--text-muted); margin-bottom: 32px; font-size: 1.1rem;">Selecciona un agente de la
                 lista o crea uno nuevo para empezar.</p>
             <button onclick="createNewAgent()"
@@ -255,8 +309,15 @@
                 document.getElementById('extractionFields').value = agent.extraction_fields || '';
                 document.getElementById('language').value = agent.language || 'Spanish';
 
+                // Advanced Call Settings
+                document.getElementById('endCallSilence').value = agent.end_call_silence_ms || 600000;
+                document.getElementById('maxCallDuration').value = agent.max_call_duration_ms || 3600000;
+                document.getElementById('ringDuration').value = agent.ring_duration_s || 30;
+
                 const wsBase = window.location.origin.replace('http', 'ws');
                 document.getElementById('retellUrl').value = `${wsBase}/llm-websocket/${agent.id}/[CALL_ID]`;
+
+                document.getElementById('agentMetadata').textContent = `ID: ${agent.id} | model: ${agent.model}`;
 
                 document.getElementById('editorArea').classList.remove('hidden');
                 document.getElementById('settingsArea').classList.remove('hidden');
@@ -281,7 +342,12 @@
             document.getElementById('hangupPhrases').value = '';
             document.getElementById('extractionFields').value = '';
             document.getElementById('language').value = 'Spanish';
+            document.getElementById('endCallSilence').value = 600000;
+            document.getElementById('maxCallDuration').value = 3600000;
+            document.getElementById('ringDuration').value = 30;
+
             document.getElementById('retellUrl').value = 'Guarda para generar URL';
+            document.getElementById('agentMetadata').textContent = '';
 
             document.getElementById('editorArea').classList.remove('hidden');
             document.getElementById('settingsArea').classList.remove('hidden');
@@ -307,7 +373,11 @@
                 webhook_url: document.getElementById('webhookUrl').value,
                 hangup_phrases: document.getElementById('hangupPhrases').value,
                 extraction_fields: document.getElementById('extractionFields').value,
-                language: document.getElementById('language').value
+                language: document.getElementById('language').value,
+                // Advanced Call Settings
+                end_call_silence_ms: parseInt(document.getElementById('endCallSilence').value),
+                max_call_duration_ms: parseInt(document.getElementById('maxCallDuration').value),
+                ring_duration_s: parseInt(document.getElementById('ringDuration').value)
             };
 
             try {

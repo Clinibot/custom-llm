@@ -100,4 +100,8 @@ export interface Agent {
     hangup_phrases?: string; // Comma separated
     extraction_fields?: string; // Comma separated
     language?: string;
+    // Advanced Call Settings
+    end_call_silence_ms?: number;
+    max_call_duration_ms?: number;
+    ring_duration_s?: number;
 }

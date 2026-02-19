@@ -39,8 +39,8 @@ const auth = basicAuth({
 app.get("/health", (_req: Request, res: Response) => {
     res.json({
         status: "ok",
-        version: "v2.1.0",
-        service: "Retell Custom LLM WebSocket Server",
+        version: "v2.2.0",
+        service: "IA Al Teléfono - Custom LLM Server",
         timestamp: new Date().toISOString(),
     });
 });

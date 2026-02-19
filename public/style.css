@@ -1,14 +1,14 @@
 :root {
     --primary-blue: #007bff;
     --primary-lilac: #8a2be2;
-    --electric-gradient: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
-    --bg-main: #f9fafb;
+    --electric-gradient: linear-gradient(135deg, #2563eb 0%, #7c3aed 50%, #db2777 100%);
+    --bg-main: #fcfdfe;
     --bg-sidebar: #ffffff;
     --bg-card: #ffffff;
-    --text-main: #111827;
-    --text-muted: #6b7280;
-    --border: #e5e7eb;
-    --accent: #4f46e5;
+    --text-main: #0f172a;
+    --text-muted: #64748b;
+    --border: #f1f5f9;
+    --accent: #2563eb;
     --font-main: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
     --font-mono: 'JetBrains Mono', monospace;
     --radius: 8px;
@@ -52,13 +52,15 @@ aside {
 }
 
 .brand {
-    font-size: 1.25rem;
-    font-weight: 800;
-    letter-spacing: -0.02em;
+    font-size: 1.1rem;
+    font-weight: 900;
+    letter-spacing: -0.03em;
     background: var(--electric-gradient);
     -webkit-background-clip: text;
+    background-clip: text;
     -webkit-text-fill-color: transparent;
     margin-bottom: 24px;
+    text-transform: uppercase;
 }
 
 .agent-list-header {
