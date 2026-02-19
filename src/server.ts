@@ -129,6 +129,46 @@ app.delete("/api/agents/:id", async (req: Request, res: Response) => {
     }
 });
 
+// Retell Webhook Receiver (Statistics)
+app.post("/api/webhook/retell", async (req: Request, res: Response) => {
+    try {
+        const { event, call } = req.body;
+
+        // 1. Only process 'call_analyzed'
+        if (event !== "call_analyzed") {
+            return res.status(200).json({ status: "ignored", event });
+        }
+
+        const agentId = call.agent_id;
+        console.log(`[Webhook] Received call_analyzed for agent: ${agentId}`);
+
+        // 2. Fetch agent's webhook configuration
+        const { data: agent, error } = await supabase
+            .from("agents")
+            .select("webhook_url")
+            .eq("id", agentId)
+            .single();
+
+        if (error || !agent?.webhook_url) {
+            console.log(`[Webhook] No webhook_url configured for agent ${agentId}`);
+            return res.status(200).json({ status: "no_webhook_configured" });
+        }
+
+        // 3. Forward to Make/n8n
+        console.log(`[Webhook] Forwarding to: ${agent.webhook_url}`);
+        fetch(agent.webhook_url, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(req.body)
+        });
+
+        res.json({ status: "forwarded" });
+    } catch (err) {
+        console.error("[Webhook Error]:", err);
+        res.status(500).json({ error: "Internal server error" });
+    }
+});
+
 // Serve UI for root and fallback
 const indexPath = path.join(__dirname, "../public/index.html");
 

@@ -216,11 +216,6 @@ export class LlmOpenAiClient {
                 ws.send(JSON.stringify(finalEvent));
             }
 
-            // 4. Lead Capture to Webhook (if call ends)
-            if (shouldHangUp && this.webhookUrl) {
-                this.sendLeadToWebhook(request.transcript || [], fullAgentResponse);
-            }
-
         } catch (err) {
             console.error("Error in OpenAI streaming:", err);
             if (ws.readyState === WebSocket.OPEN) {
@@ -236,24 +231,4 @@ export class LlmOpenAiClient {
         }
     }
 
-    /**
-     * Send call summary to external webhook.
-     */
-    private async sendLeadToWebhook(transcript: any[], lastResponse: string) {
-        try {
-            fetch(this.webhookUrl, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    agent_id: this.agentId,
-                    timestamp: new Date().toISOString(),
-                    transcript: transcript,
-                    last_response: lastResponse,
-                    summary: "Lead captured from Retell call"
-                })
-            });
-        } catch (e) {
-            console.error("Webhook error:", e);
-        }
-    }
 }
