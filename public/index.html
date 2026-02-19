@@ -315,7 +315,7 @@
                 document.getElementById('ringDuration').value = agent.ring_duration_s || 30;
 
                 const wsBase = window.location.origin.replace('http', 'ws');
-                document.getElementById('retellUrl').value = `${wsBase}/llm-websocket/${agent.id}/[CALL_ID]`;
+                document.getElementById('retellUrl').value = `${wsBase}/llm-websocket/${agent.id}/{call_id}`;
 
                 document.getElementById('agentMetadata').textContent = `ID: ${agent.id} | model: ${agent.model}`;
 
