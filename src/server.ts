@@ -23,6 +23,83 @@ const app = express();
 const wsInstance = expressWs(app);
 const port = parseInt(process.env.PORT || "8080", 10);
 
+// ============================================================
+// Global Logging Middleware
+// ============================================================
+app.use((req: Request, _res: Response, next: NextFunction) => {
+    console.log(`[${new Date().toISOString()}] ${req.method} ${req.path}`);
+    next();
+});
+
+// ============================================================
+// WebSocket Route — Retell LLM Integration (Move to TOP)
+// ============================================================
+wsInstance.app.ws(
+    "/llm-websocket/:agent_id/:call_id",
+    async (ws: WebSocket, req: Request) => {
+        const { agent_id, call_id } = req.params;
+        console.log(`[${call_id}] Connection Attempt for Agent ${agent_id}`);
+
+        const llmClient = new LlmOpenAiClient();
+        await llmClient.initialize(agent_id as string);
+
+        const configEvent: RetellConfigEvent = {
+            response_type: "config",
+            config: {
+                auto_reconnect: true,
+                call_details: false,
+            },
+        };
+        ws.send(JSON.stringify(configEvent));
+        console.log(`[${call_id}] Config sent.`);
+
+        // Greeting - Immediately after config
+        console.log(`[${call_id}] Sending BeginMessage (Greeting)...`);
+        llmClient.BeginMessage(ws);
+
+        ws.on("error", (err: Error) => {
+            console.error(`[${call_id}] WebSocket error:`, err);
+        });
+
+        ws.on("close", (code: number, reason: Buffer) => {
+            console.log(
+                `[${call_id}] WebSocket closed — code: ${code}, reason: ${reason.toString()}`
+            );
+        });
+
+        ws.on("message", async (data: RawData, isBinary: boolean) => {
+            const messageStr = data.toString();
+            console.log(`[${call_id}] WS Msg: ${messageStr.substring(0, 100)}...`);
+
+            if (isBinary) {
+                ws.close(1002, "Text only.");
+                return;
+            }
+
+            try {
+                const request: RetellRequest = JSON.parse(data.toString());
+
+                if (request.interaction_type === "ping_pong") {
+                    ws.send(JSON.stringify({
+                        response_type: "ping_pong",
+                        timestamp: request.timestamp!,
+                    }));
+                    return;
+                }
+
+                if (request.interaction_type === "call_details") {
+                    console.log(`[${call_id}] Details received`);
+                    return;
+                }
+
+                llmClient.DraftResponse(request, ws);
+            } catch (err) {
+                console.error(`[${call_id}] Parse Error:`, err);
+            }
+        });
+    }
+);
+
 app.use(express.json());
 
 // Basic Auth Configuration
@@ -185,76 +262,6 @@ app.get("*", (req: Request, res: Response) => {
 // WebSocket Route — Retell LLM Integration
 // ============================================================
 
-wsInstance.app.ws(
-    "/llm-websocket/:agent_id/:call_id",
-    async (ws: WebSocket, req: Request) => {
-        const { agent_id, call_id } = req.params;
-        console.log(`[${call_id}] Agent ${agent_id} connected`);
-
-        const llmClient = new LlmOpenAiClient();
-        await llmClient.initialize(agent_id as string);
-
-        const configEvent: RetellConfigEvent = {
-            response_type: "config",
-            config: {
-                auto_reconnect: true,
-                call_details: false,
-            },
-        };
-        ws.send(JSON.stringify(configEvent));
-        console.log(`[${call_id}] Config sent. Waiting for agent initiation...`);
-
-        // Small delay to ensure Retell has processed the config event
-        setTimeout(() => {
-            console.log(`[${call_id}] Sending BeginMessage (Greeting)...`);
-            llmClient.BeginMessage(ws);
-        }, 100);
-
-        ws.on("error", (err: Error) => {
-            console.error(`[${call_id}] WebSocket error:`, err);
-        });
-
-        ws.on("close", (code: number, reason: Buffer) => {
-            console.log(
-                `[${call_id}] WebSocket closed — code: ${code}, reason: ${reason.toString()}`
-            );
-        });
-
-        ws.on("message", async (data: RawData, isBinary: boolean) => {
-            const messageStr = data.toString();
-            console.log(`[${call_id}] Incoming: ${messageStr.substring(0, 200)}${messageStr.length > 200 ? '...' : ''}`);
-
-            if (isBinary) {
-                console.error(`[${call_id}] Received binary message, expected text.`);
-                ws.close(1002, "Expected text message, got binary.");
-                return;
-            }
-
-            try {
-                const request: RetellRequest = JSON.parse(data.toString());
-
-                if (request.interaction_type === "ping_pong") {
-                    const pong: RetellPingPongEvent = {
-                        response_type: "ping_pong",
-                        timestamp: request.timestamp!,
-                    };
-                    ws.send(JSON.stringify(pong));
-                    return;
-                }
-
-                if (request.interaction_type === "call_details") {
-                    console.log(`[${call_id}] Call details received:`, request.call);
-                    return;
-                }
-
-                llmClient.DraftResponse(request, ws);
-            } catch (err) {
-                console.error(`[${call_id}] Error parsing message:`, err);
-                ws.close(1002, "Cannot parse incoming message.");
-            }
-        });
-    }
-);
 
 // ============================================================
 // Start Server

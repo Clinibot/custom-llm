@@ -135,12 +135,11 @@ export class LlmOpenAiClient {
         request: RetellRequest,
         ws: WebSocket
     ): Promise<void> {
-        console.log(`[Interaction] type: ${request.interaction_type}, response_id: ${request.response_id}`);
+        console.log(`[DraftResponse] Type: ${request.interaction_type}, Response ID: ${request.response_id}, Turntaking: ${request.turntaking}`);
 
         if (request.interaction_type === "update_only") {
-            // Check if Retell shifted turn to agent without response_required (rare)
             if (request.turntaking === "agent_turn") {
-                console.log("Turn shifted to agent in update_only, forcing response.");
+                console.log("[Protocol] Retell expects a response despite update_only (agent_turn).");
             } else {
                 return;
             }
