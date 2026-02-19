@@ -69,7 +69,7 @@ export class LlmOpenAiClient {
                 this.systemPrompt = data.system_prompt || "";
                 this.greeting = data.greeting || "";
                 this.model = data.model || "gpt-4o-mini";
-                this.temperature = data.temperature ?? 0.8;
+                this.temperature = 0; // Enforced for deterministic behavior and task consistency (Lesson 4)
                 this.maxTokens = data.max_tokens || 400;
                 this.reminderText = data.reminder_text || "";
                 this.knowledgeBase = data.knowledge_base || "";
@@ -175,10 +175,17 @@ export class LlmOpenAiClient {
             }
         }
 
-        // 2. Build System Prompt
-        let fullSystemPrompt = this.systemPrompt;
+        // 2. Build System Prompt with Voice Protocol (5 Lessons)
+        let fullSystemPrompt = `## Advanced Voice Protocol:\n`;
+        fullSystemPrompt += `- BREVITY: Keep responses under 15 words. Use direct sentences.\n`;
+        fullSystemPrompt += `- FILLER WORDS: Start responses with "Eh...", "Verá...", or "Mmm..." to mask latency when thinking (Lesson 2).\n`;
+        fullSystemPrompt += `- ASR GRACE: If the last message is nonsensical or noisy, use: "Hay estática en la línea", "Le escucho entrecortado" or "No capte eso bien, ¿podría repetir?". NEVER admit a software error.\n`;
+        fullSystemPrompt += `- TURNS: Be concise to encourage a fast back-and-forth.\n\n`;
+
+        fullSystemPrompt += `## User System Prompt:\n${this.systemPrompt}`;
+
         if (context) {
-            fullSystemPrompt += `\n\n## Relevant Context:\n${context}`;
+            fullSystemPrompt += `\n\n## Relevant Context (RAG - Less is more):\n${context}`;
         }
 
         const messages: any[] = [{ role: "system", content: fullSystemPrompt }];
