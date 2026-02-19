@@ -248,7 +248,7 @@ export class LlmOpenAiClient {
             }
         } catch (err) {
             console.error(`[${request.response_id}] [OpenAI] CRITICAL ERROR:`, err);
-            if (ws.readyState === ws.OPEN) {
+            if (ws.readyState === WebSocket.OPEN) {
                 ws.send(JSON.stringify({
                     response_type: "response",
                     response_id: request.response_id,
