@@ -6,7 +6,6 @@
   "scripts": {
     "dev": "ts-node src/server.ts",
     "build": "tsc",
-    "prestart": "npm run build",
     "start": "node dist/server.js"
   },
   "dependencies": {
@@ -27,6 +26,6 @@
     "typescript": "^5.7.3"
   },
   "engines": {
-    "node": ">=18.0.0"
+    "node": ">=20.0.0"
   }
 }
