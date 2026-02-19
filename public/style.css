@@ -2,15 +2,14 @@
     --primary-blue: #007bff;
     --primary-lilac: #8a2be2;
     --accent-blue: #4f46e5;
-    --accent-lilac: #8b5cf6;
-    --subtle-gradient: linear-gradient(135deg, #6366f1 0%, #a855f7 100%);
-    --bg-main: #fcfdfe;
+    --accent-lilac: #7c3aed;
+    --bg-main: #f8fafc;
     --bg-sidebar: #ffffff;
     --bg-card: #ffffff;
     --text-main: #0f172a;
     --text-muted: #64748b;
-    --border: #f1f5f9;
-    --accent: #6366f1;
+    --border: #e2e8f0;
+    --accent: #7c3aed;
     --font-main: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
     --font-mono: 'JetBrains Mono', monospace;
     --radius: 8px;
@@ -54,23 +53,23 @@ aside {
 }
 
 .brand {
-    font-size: 1.1rem;
-    font-weight: 800;
-    letter-spacing: -0.02em;
+    font-size: 0.95rem;
+    font-weight: 700;
+    letter-spacing: 0.02em;
     color: var(--text-main);
     margin-bottom: 24px;
     text-transform: uppercase;
     display: flex;
     align-items: center;
-    gap: 10px;
+    gap: 8px;
 }
 
 .brand::before {
     content: '';
-    width: 4px;
-    height: 16px;
-    background: var(--subtle-gradient);
-    border-radius: 4px;
+    width: 3px;
+    height: 14px;
+    background: var(--accent);
+    border-radius: 2px;
 }
 
 .agent-list-header {
@@ -260,11 +259,11 @@ button {
     color: white;
     border: none;
     font-size: 0.875rem;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 }
 
 #saveBtn:hover {
     background: #000;
-    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
 }
 
 .btn-secondary {
@@ -442,7 +441,7 @@ button {
 }
 
 .step-num {
-    background: var(--subtle-gradient);
+    background: var(--accent);
     color: white;
     width: 24px;
     height: 24px;

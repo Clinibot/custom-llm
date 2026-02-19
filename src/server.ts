@@ -51,11 +51,18 @@ wsInstance.app.ws(
             },
         };
         ws.send(JSON.stringify(configEvent));
-        console.log(`[${call_id}] Config sent.`);
+        console.log(`[${call_id}] ✅ Config sent. Protocol: ${JSON.stringify(configEvent.config)}`);
 
-        // Greeting - Immediately after config
-        console.log(`[${call_id}] Sending BeginMessage (Greeting)...`);
-        llmClient.BeginMessage(ws);
+        // Force Greeting - Zero delay from server.ts to ensure protocol compliance
+        const greetingContent = llmClient.greeting || "Hola, ¿cómo puedo ayudarte?";
+        console.log(`[${call_id}] 🚀 Sending Greeting: "${greetingContent}"`);
+        ws.send(JSON.stringify({
+            response_type: "response",
+            response_id: 0,
+            content: greetingContent,
+            content_complete: true,
+            end_call: false,
+        }));
 
         ws.on("error", (err: Error) => {
             console.error(`[${call_id}] WebSocket error:`, err);

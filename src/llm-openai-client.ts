@@ -11,18 +11,18 @@ import {
  */
 export class LlmOpenAiClient {
     private openaiClient: OpenAI;
-    private systemPrompt: string;
-    private greeting: string;
-    private model: string;
-    private temperature: number;
-    private maxTokens: number;
-    private reminderText: string;
-    private knowledgeBase: string;
-    private webhookUrl: string;
-    private hangupPhrases: string[];
-    private extractionFields: string;
-    private language: string;
-    private agentId: string;
+    public agentId: string | null = null;
+    public greeting: string = "";
+    private systemPrompt: string = "";
+    private model: string = "gpt-4o-mini";
+    private temperature: number = 0.7;
+    private maxTokens: number = 512;
+    private reminderText: string = "";
+    private knowledgeBase: string = "";
+    private webhookUrl: string = "";
+    private hangupPhrases: string[] = [];
+    private extractionFields: string = "";
+    private language: string = "Spanish";
     private supabase: any;
 
     constructor() {
