@@ -1,15 +1,15 @@
 :root {
     --primary-blue: #007bff;
     --primary-lilac: #8a2be2;
-    --accent-blue: #4f46e5;
-    --accent-lilac: #7c3aed;
-    --bg-main: #f8fafc;
+    --accent-blue: #6366f1;
+    --accent-lilac: #a78bfa;
+    --bg-main: #fcfdfe;
     --bg-sidebar: #ffffff;
     --bg-card: #ffffff;
     --text-main: #0f172a;
     --text-muted: #64748b;
-    --border: #e2e8f0;
-    --accent: #7c3aed;
+    --border: #f1f5f9;
+    --accent: #6366f1;
     --font-main: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
     --font-mono: 'JetBrains Mono', monospace;
     --radius: 8px;

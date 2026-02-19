@@ -35,13 +35,21 @@ app.use((req: Request, _res: Response, next: NextFunction) => {
 // WebSocket Route — Retell LLM Integration (Move to TOP)
 // ============================================================
 wsInstance.app.ws(
-    "/llm-websocket/:agent_id/:call_id",
+    "/llm-websocket/:call_id",
     async (ws: WebSocket, req: Request) => {
-        const { agent_id, call_id } = req.params;
+        const { call_id } = req.params;
+        const agent_id = req.query.agent_id as string;
+
+        if (!agent_id) {
+            console.error(`[${call_id}] Connection refused: Missing agent_id in query params.`);
+            ws.close(1008, "Missing agent_id");
+            return;
+        }
+
         console.log(`[${call_id}] Connection Attempt for Agent ${agent_id}`);
 
         const llmClient = new LlmOpenAiClient();
-        await llmClient.initialize(agent_id as string);
+        await llmClient.initialize(agent_id);
 
         const configEvent: RetellConfigEvent = {
             response_type: "config",

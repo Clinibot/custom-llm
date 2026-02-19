@@ -238,7 +238,7 @@
             <p style="color: var(--text-muted); margin-bottom: 32px; font-size: 1.1rem;">Selecciona un agente de la
                 lista o crea uno nuevo para empezar.</p>
             <button onclick="createNewAgent()"
-                style="width: auto; padding: 14px 28px; background: var(--electric-gradient); color: white; border: none; font-weight: 600;">+
+                style="width: auto; padding: 14px 28px; background: var(--text-main); color: white; border: none; font-weight: 600;">+
                 CREAR NUEVO AGENTE</button>
         </main>
     </div>
@@ -396,7 +396,7 @@ $$;</pre>
                 document.getElementById('ringDuration').value = agent.ring_duration_s || 30;
 
                 const wsBase = window.location.origin.replace('http', 'ws');
-                document.getElementById('retellUrl').value = `${wsBase}/llm-websocket/${agent.id}/{call_id}`;
+                document.getElementById('retellUrl').value = `${wsBase}/llm-websocket/{{call_id}}?agent_id=${agent.id}`;
 
                 document.getElementById('agentMetadata').textContent = `ID: ${agent.id} | model: ${agent.model}`;
 
