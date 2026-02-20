@@ -77,6 +77,15 @@ export class LlmOpenAiClient {
                 this.hangupPhrases = data.hangup_phrases ? data.hangup_phrases.split(",").map((s: string) => s.trim().toLowerCase()) : [];
                 this.extractionFields = data.extraction_fields || "";
                 this.language = data.language || "es";
+
+                // Multi-user: Use agent-specific OpenAI key if available
+                if (data.openai_api_key) {
+                    console.log(`[${agentId}] Using agent-specific OpenAI API Key.`);
+                    this.openaiClient = new OpenAI({
+                        apiKey: data.openai_api_key,
+                    });
+                }
+
                 console.log(`Config loaded for agent: ${agentId}`);
             }
         } catch (err) {

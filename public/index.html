@@ -124,6 +124,29 @@
                 </div>
             </div>
 
+            <!-- API Keys -->
+            <div class="card">
+                <div class="card-header" onclick="toggleAccordion('api-content', this)">
+                    <h3>API Keys (Multi-User)</h3>
+                    <svg class="chevron rotated" width="16" height="16" viewBox="0 0 24 24" fill="none"
+                        stroke="currentColor" stroke-width="2">
+                        <path d="M6 9l6 6 6-6" />
+                    </svg>
+                </div>
+                <div id="api-content" class="card-content accordion-content active">
+                    <div class="field">
+                        <label>OpenAI API Key</label>
+                        <input type="password" id="openaiApiKey" placeholder="sk-...">
+                        <p class="field-desc">Para que la IA pueda hablar. Se guarda por agente.</p>
+                    </div>
+                    <div class="field">
+                        <label>Retell API Key</label>
+                        <input type="password" id="retellApiKey" placeholder="Su Retell Key">
+                        <p class="field-desc">Para gestionar voces y números de este agente.</p>
+                    </div>
+                </div>
+            </div>
+
             <!-- Data Extraction -->
             <div class="card">
                 <div class="card-header" onclick="toggleAccordion('extraction-content', this)">
@@ -389,6 +412,8 @@ $$;</pre>
                 document.getElementById('hangupPhrases').value = agent.hangup_phrases || '';
                 document.getElementById('extractionFields').value = agent.extraction_fields || '';
                 document.getElementById('language').value = agent.language || 'Spanish';
+                document.getElementById('openaiApiKey').value = agent.openai_api_key || '';
+                document.getElementById('retellApiKey').value = agent.retell_api_key || '';
 
                 // Advanced Call Settings
                 document.getElementById('endCallSilence').value = agent.end_call_silence_ms || 600000;
@@ -423,6 +448,8 @@ $$;</pre>
             document.getElementById('hangupPhrases').value = '';
             document.getElementById('extractionFields').value = '';
             document.getElementById('language').value = 'Spanish';
+            document.getElementById('openaiApiKey').value = '';
+            document.getElementById('retellApiKey').value = '';
             document.getElementById('endCallSilence').value = 600000;
             document.getElementById('maxCallDuration').value = 3600000;
             document.getElementById('ringDuration').value = 30;
@@ -455,6 +482,8 @@ $$;</pre>
                 hangup_phrases: document.getElementById('hangupPhrases').value,
                 extraction_fields: document.getElementById('extractionFields').value,
                 language: document.getElementById('language').value,
+                openai_api_key: document.getElementById('openaiApiKey').value,
+                retell_api_key: document.getElementById('retellApiKey').value,
                 // Advanced Call Settings
                 end_call_silence_ms: parseInt(document.getElementById('endCallSilence').value),
                 max_call_duration_ms: parseInt(document.getElementById('maxCallDuration').value),
