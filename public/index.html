@@ -260,7 +260,7 @@
                 const wsBase = window.location.origin.replace('http', 'ws');
                 document.getElementById('retellUrl').value = `${wsBase}/llm-websocket/{{call_id}}?agent_id=${agent.id}`;
 
-                document.getElementById('agentMetadata').textContent = `ID: ${agent.id} | provider: ${agent.provider.toUpperCase()} | model: ${agent.model}`;
+                document.getElementById('agentMetadata').textContent = `ID: ${agent.id} | provider: ${(agent.provider || 'openai').toUpperCase()} | model: ${agent.model}`;
 
                 document.getElementById('editorArea').classList.remove('hidden');
                 document.getElementById('settingsArea').classList.remove('hidden');
