@@ -67,19 +67,19 @@ export class LlmOpenAiClient {
 
                 // Multi-provider initialization
                 if (this.provider === "openai" && data.openai_api_key) {
-                    console.log(`[${agentId}] IA: OpenAI (${this.model})`);
+                    console.log(`[${agentId}] 🧠 Brain: OpenAI | Model: ${this.model}`);
                     this.openaiClient = new OpenAI({ apiKey: data.openai_api_key });
                 } else if (this.provider === "anthropic" && data.anthropic_api_key) {
-                    console.log(`[${agentId}] IA: Anthropic (${this.model})`);
+                    console.log(`[${agentId}] 🧠 Brain: Anthropic | Model: ${this.model}`);
                     this.anthropicClient = new Anthropic({ apiKey: data.anthropic_api_key });
                 } else if (this.provider === "deepseek" && data.openai_api_key) {
-                    console.log(`[${agentId}] IA: DeepSeek (${this.model})`);
+                    console.log(`[${agentId}] 🧠 Brain: DeepSeek | Model: ${this.model}`);
                     this.openaiClient = new OpenAI({
                         apiKey: data.openai_api_key,
-                        baseURL: "https://api.deepseek.com/v1"
+                        baseURL: "https://api.deepseek.com"
                     });
                 } else {
-                    console.warn(`[${agentId}] WARNING: No API key for provider ${this.provider}`);
+                    console.warn(`[${agentId}] ⚠️ WARNING: Proveedor [${this.provider}] seleccionado pero NO se encontró API Key válida en Supabase.`);
                 }
 
                 console.log(`Config loaded for agent: ${agentId}`);
