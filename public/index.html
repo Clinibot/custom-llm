@@ -90,6 +90,26 @@
 
         <!-- Settings Pane (Right) -->
         <div id="settingsArea" class="settings-pane hidden">
+            <!-- Integration -->
+            <div class="card">
+                <div class="card-header" onclick="toggleAccordion('retell-content', this)">
+                    <h3>Retell AI Integration</h3>
+                    <svg class="chevron rotated" width="16" height="16" viewBox="0 0 24 24" fill="none"
+                        stroke="currentColor" stroke-width="2">
+                        <path d="M6 9l6 6 6-6" />
+                    </svg>
+                </div>
+                <div id="retell-content" class="card-content accordion-content active">
+                    <div class="field">
+                        <label>Custom LLM URL</label>
+                        <div class="url-copy-wrapper">
+                            <input type="text" id="retellUrl" readonly>
+                            <button class="btn-secondary" onclick="copyUrl()">COPIAR</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             <div class="field">
                 <label>Proveedor (Brain)</label>
                 <select id="provider" onchange="updateProviderUI()">
@@ -136,26 +156,6 @@
                     <div class="field">
                         <label>Retell API Key</label>
                         <input type="password" id="retellApiKey" placeholder="Su Retell Key">
-                    </div>
-                </div>
-            </div>
-
-            <!-- Integration -->
-            <div class="card">
-                <div class="card-header" onclick="toggleAccordion('retell-content', this)">
-                    <h3>Retell AI Integration</h3>
-                    <svg class="chevron rotated" width="16" height="16" viewBox="0 0 24 24" fill="none"
-                        stroke="currentColor" stroke-width="2">
-                        <path d="M6 9l6 6 6-6" />
-                    </svg>
-                </div>
-                <div id="retell-content" class="card-content accordion-content active">
-                    <div class="field">
-                        <label>Custom LLM URL</label>
-                        <div class="url-copy-wrapper">
-                            <input type="text" id="retellUrl" readonly>
-                            <button class="btn-secondary" onclick="copyUrl()">COPIAR</button>
-                        </div>
                     </div>
                 </div>
             </div>
