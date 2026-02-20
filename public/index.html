@@ -68,114 +68,112 @@
                     <option value="deepseek">DeepSeek (Potente/Económico)</option>
                 </select>
             </div>
-        </div>
-    </div>
 
-    <!-- API Keys -->
-    <div class="card">
-        <div class="card-header" onclick="toggleAccordion('api-content', this)">
-            <h3>API Keys (Multi-User)</h3>
-            <svg class="chevron rotated" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                stroke-width="2">
-                <path d="M6 9l6 6 6-6" />
-            </svg>
-        </div>
-        <div id="api-content" class="card-content accordion-content active">
-            <div id="openaiKeyField" class="field">
-                <label>OpenAI API Key</label>
-                <input type="password" id="openaiApiKey" placeholder="sk-...">
+            <!-- API Keys -->
+            <div class="card">
+                <div class="card-header" onclick="toggleAccordion('api-content', this)">
+                    <h3>API Keys (Multi-User)</h3>
+                    <svg class="chevron rotated" width="16" height="16" viewBox="0 0 24 24" fill="none"
+                        stroke="currentColor" stroke-width="2">
+                        <path d="M6 9l6 6 6-6" />
+                    </svg>
+                </div>
+                <div id="api-content" class="card-content accordion-content active">
+                    <div id="openaiKeyField" class="field">
+                        <label>OpenAI API Key</label>
+                        <input type="password" id="openaiApiKey" placeholder="sk-...">
+                    </div>
+                    <div id="anthropicKeyField" class="field hidden">
+                        <label>Anthropic API Key</label>
+                        <input type="password" id="anthropicApiKey" placeholder="sk-ant-...">
+                    </div>
+                    <div id="deepseekKeyField" class="field hidden">
+                        <label>DeepSeek API Key</label>
+                        <input type="password" id="deepseekApiKey" placeholder="sk-...">
+                        <p class="field-desc">DeepSeek usa el mismo protocolo que OpenAI.</p>
+                    </div>
+                    <div class="field">
+                        <label>Retell API Key</label>
+                        <input type="password" id="retellApiKey" placeholder="Su Retell Key">
+                    </div>
+                </div>
             </div>
-            <div id="anthropicKeyField" class="field hidden">
-                <label>Anthropic API Key</label>
-                <input type="password" id="anthropicApiKey" placeholder="sk-ant-...">
-            </div>
-            <div id="deepseekKeyField" class="field hidden">
-                <label>DeepSeek API Key</label>
-                <input type="password" id="deepseekApiKey" placeholder="sk-...">
-                <p class="field-desc">DeepSeek usa el mismo protocolo que OpenAI.</p>
-            </div>
-            <div class="field">
-                <label>Retell API Key</label>
-                <input type="password" id="retellApiKey" placeholder="Su Retell Key">
-            </div>
-        </div>
-    </div>
 
-    <!-- Integration -->
-    <div class="card">
-        <div class="card-header" onclick="toggleAccordion('retell-content', this)">
-            <h3>Retell AI Integration</h3>
-            <svg class="chevron rotated" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                stroke-width="2">
-                <path d="M6 9l6 6 6-6" />
-            </svg>
-        </div>
-        <div id="retell-content" class="card-content accordion-content active">
-            <div class="field">
-                <label>Custom LLM URL</label>
-                <div class="url-copy-wrapper">
-                    <input type="text" id="retellUrl" readonly>
-                    <button class="btn-secondary" onclick="copyUrl()">COPIAR</button>
+            <!-- Integration -->
+            <div class="card">
+                <div class="card-header" onclick="toggleAccordion('retell-content', this)">
+                    <h3>Retell AI Integration</h3>
+                    <svg class="chevron rotated" width="16" height="16" viewBox="0 0 24 24" fill="none"
+                        stroke="currentColor" stroke-width="2">
+                        <path d="M6 9l6 6 6-6" />
+                    </svg>
+                </div>
+                <div id="retell-content" class="card-content accordion-content active">
+                    <div class="field">
+                        <label>Custom LLM URL</label>
+                        <div class="url-copy-wrapper">
+                            <input type="text" id="retellUrl" readonly>
+                            <button class="btn-secondary" onclick="copyUrl()">COPIAR</button>
+                        </div>
+                    </div>
                 </div>
             </div>
-        </div>
-    </div>
 
-    <!-- Model Parameters -->
-    <div class="card">
-        <div class="card-header" onclick="toggleAccordion('model-content', this)">
-            <h3>Modelo y Parámetros</h3>
-            <svg class="chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                stroke-width="2">
-                <path d="M6 9l6 6 6-6" />
-            </svg>
-        </div>
-        <div id="model-content" class="card-content accordion-content">
-            <div class="row">
-                <div class="field">
-                    <label>Modelo</label>
-                    <select id="model">
-                        <!-- Options populated by JS -->
-                    </select>
+            <!-- Model Parameters -->
+            <div class="card">
+                <div class="card-header" onclick="toggleAccordion('model-content', this)">
+                    <h3>Modelo y Parámetros</h3>
+                    <svg class="chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                        stroke-width="2">
+                        <path d="M6 9l6 6 6-6" />
+                    </svg>
                 </div>
-                <div class="field">
-                    <label>Idioma</label>
-                    <select id="language">
-                        <option value="Spanish">Español</option>
-                        <option value="English">Inglés</option>
-                    </select>
+                <div id="model-content" class="card-content accordion-content">
+                    <div class="row">
+                        <div class="field">
+                            <label>Modelo</label>
+                            <select id="model">
+                                <!-- Options populated by JS -->
+                            </select>
+                        </div>
+                        <div class="field">
+                            <label>Idioma</label>
+                            <select id="language">
+                                <option value="Spanish">Español</option>
+                                <option value="English">Inglés</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="field">
+                            <label>Temp</label>
+                            <input type="number" id="temperature" step="0.1" value="0.8">
+                        </div>
+                        <div class="field">
+                            <label>Max Tokens</label>
+                            <input type="number" id="maxTokens" value="400">
+                        </div>
+                    </div>
+                    <div class="field">
+                        <label>Texto recordatorio (silencio)</label>
+                        <input type="text" id="reminderText">
+                    </div>
                 </div>
             </div>
-            <div class="row">
-                <div class="field">
-                    <label>Temp</label>
-                    <input type="number" id="temperature" step="0.1" value="0.8">
-                </div>
-                <div class="field">
-                    <label>Max Tokens</label>
-                    <input type="number" id="maxTokens" value="400">
-                </div>
-            </div>
-            <div class="field">
-                <label>Texto recordatorio (silencio)</label>
-                <input type="text" id="reminderText">
-            </div>
-        </div>
-    </div>
 
-    <button class="btn-danger" id="deleteBtn">ELIMINAR AGENTE</button>
+            <button class="btn-danger" id="deleteBtn">ELIMINAR AGENTE</button>
+        </div>
     </div>
 
     <!-- Empty State -->
     <main id="emptyArea" class="empty-pane">
         <div class="brand" style="font-size: 3.5rem; margin-bottom: 2rem;">IA AL TELÉFONO</div>
-        <p style="color: var(--text-muted); margin-bottom: 32px; font-size: 1.1rem;">Selecciona un agente de la
-            lista o crea uno nuevo para empezar.</p>
+        <p style="color: var(--text-muted); margin-bottom: 32px; font-size: 1.1rem;">Selecciona un agente de la lista o
+            crea uno nuevo para empezar.</p>
         <button onclick="createNewAgent()"
             style="width: auto; padding: 14px 28px; background: var(--text-main); color: white; border: none; font-weight: 600;">+
             CREAR NUEVO AGENTE</button>
     </main>
-    </div>
 
     <script>
         let editor;
