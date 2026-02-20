@@ -60,70 +60,6 @@
 
         <!-- Settings Pane (Right) -->
         <div id="settingsArea" class="settings-pane hidden">
-            <!-- Knowledge Base -->
-            <div class="card">
-                <div class="card-header" onclick="toggleAccordion('kb-content', this)">
-                    <div style="display: flex; align-items: center; gap: 8px;">
-                        <h3>Brain & RAG</h3>
-                        <div class="info-trigger" onclick="event.stopPropagation(); showRagHelp()">
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                                stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                                <circle cx="12" cy="12" r="10" />
-                                <line x1="12" y1="16" x2="12" y2="12" />
-                                <line x1="12" y1="8" x2="12.01" y2="8" />
-                            </svg>
-                        </div>
-                    </div>
-                    <svg class="chevron rotated" width="16" height="16" viewBox="0 0 24 24" fill="none"
-                        stroke="currentColor" stroke-width="2">
-                        <path d="M6 9l6 6 6-6" />
-                    </svg>
-                </div>
-                <div id="kb-content" class="card-content accordion-content active">
-                    <div class="field">
-                        <label>ID Base de Conocimientos</label>
-                        <input type="text" id="knowledgeBase" placeholder="ID de Supabase">
-                    </div>
-                </div>
-            </div>
-
-            <!-- Call Settings -->
-            <div class="card">
-                <div class="card-header" onclick="toggleAccordion('call-settings-content', this)">
-                    <h3>Call Settings</h3>
-                    <svg class="chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                        stroke-width="2">
-                        <path d="M6 9l6 6 6-6" />
-                    </svg>
-                </div>
-                <div id="call-settings-content" class="card-content accordion-content">
-                    <div class="field">
-                        <label>End Call on Silence (ms)</label>
-                        <div style="display: flex; align-items: center; gap: 8px;">
-                            <input type="number" id="endCallSilence" value="600000" step="1000">
-                            <span class="unit-label">ms</span>
-                        </div>
-                        <p class="field-desc">Termina si el usuario calla por este tiempo (Def: 10 min)</p>
-                    </div>
-                    <div class="field">
-                        <label>Max Call Duration (ms)</label>
-                        <div style="display: flex; align-items: center; gap: 8px;">
-                            <input type="number" id="maxCallDuration" value="3600000" step="1000">
-                            <span class="unit-label">ms</span>
-                        </div>
-                        <p class="field-desc">Duración máxima de llamada (Def: 1 h)</p>
-                    </div>
-                    <div class="field">
-                        <label>Ring Duration (s)</label>
-                        <div style="display: flex; align-items: center; gap: 8px;">
-                            <input type="number" id="ringDuration" value="30" min="5" max="90">
-                            <span class="unit-label">s</span>
-                        </div>
-                        <p class="field-desc">Tiempo máx. de timbrado (5s - 90s)</p>
-                    </div>
-                </div>
-            </div>
-
             <!-- API Keys -->
             <div class="card">
                 <div class="card-header" onclick="toggleAccordion('api-content', this)">
@@ -143,47 +79,6 @@
                         <label>Retell API Key</label>
                         <input type="password" id="retellApiKey" placeholder="Su Retell Key">
                         <p class="field-desc">Para gestionar voces y números de este agente.</p>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Data Extraction -->
-            <div class="card">
-                <div class="card-header" onclick="toggleAccordion('extraction-content', this)">
-                    <h3>Post-Call Data Extraction</h3>
-                    <svg class="chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                        stroke-width="2">
-                        <path d="M6 9l6 6 6-6" />
-                    </svg>
-                </div>
-                <div id="extraction-content" class="card-content accordion-content">
-                    <div class="field">
-                        <label>Campos a Recuperar</label>
-                        <textarea id="extractionFields" placeholder="nombre, servicio, email"
-                            style="height: 60px;"></textarea>
-                        <p class="field-desc">Define qué información debe extraer la IA de la voz.</p>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Automation -->
-            <div class="card">
-                <div class="card-header" onclick="toggleAccordion('auto-content', this)">
-                    <h3>Automatización</h3>
-                    <svg class="chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                        stroke-width="2">
-                        <path d="M6 9l6 6 6-6" />
-                    </svg>
-                </div>
-                <div id="auto-content" class="card-content accordion-content">
-                    <div class="field">
-                        <label>Frases de cierre (cuelga)</label>
-                        <input type="text" id="hangupPhrases" placeholder="adiós, hasta luego">
-                    </div>
-                    <div class="field">
-                        <label>Webhook Estadísticas (Make/n8n)</label>
-                        <input type="text" id="webhookUrl" placeholder="https://hook.make.com/...">
-                        <p class="field-desc">Solo recibe evento 'call_analyzed'</p>
                     </div>
                 </div>
             </div>
@@ -266,77 +161,6 @@
         </main>
     </div>
 
-    <!-- RAG Help Modal -->
-    <div id="ragModal" class="modal-overlay hidden">
-        <div class="modal">
-            <div class="modal-header">
-                <h2>Cerebro IA (RAG) - Guía de Configuración</h2>
-                <button class="btn-icon" onclick="hideRagHelp()">×</button>
-            </div>
-            <div class="modal-body">
-                <p>El RAG permite que tu agente responda usando tu propia base de conocimientos técnica o comercial.</p>
-
-                <div class="step-guide">
-                    <div class="step">
-                        <div class="step-num">1</div>
-                        <div class="step-text">Define un <strong>ID de Base de Conocimientos</strong> en este panel (ej:
-                            <code>clinica_1</code>).
-                        </div>
-                    </div>
-                    <div class="arrow">↓</div>
-                    <div class="step">
-                        <div class="step-num">2</div>
-                        <div class="step-text">Ejecuta este código en el <strong>SQL Editor</strong> de Supabase:</div>
-                    </div>
-                </div>
-
-                <div class="code-block-header">
-                    <span>SQL de Configuración</span>
-                    <button class="btn-secondary btn-small" onclick="copySql()">COPIAR SQL</button>
-                </div>
-                <pre id="ragSql" class="sql-preview">
--- 1. Tabla de Documentos
-CREATE TABLE IF NOT EXISTS documents (
-  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  content text, 
-  kb_id text, 
-  embedding vector(1536)
-);
-
--- 2. Función de Búsqueda
-CREATE OR REPLACE FUNCTION match_documents (
-  query_embedding vector(1536),
-  match_threshold float,
-  match_count int,
-  filter_kb_id text
-)
-RETURNS TABLE (id uuid, content text, similarity float)
-LANGUAGE plpgsql AS $$
-BEGIN
-  RETURN QUERY
-  SELECT documents.id, documents.content,
-         1 - (documents.embedding <=> query_embedding) AS similarity
-  FROM documents
-  WHERE 1 - (documents.embedding <=> query_embedding) > match_threshold
-    AND documents.kb_id = filter_kb_id
-  ORDER BY similarity DESC LIMIT match_count;
-END;
-$$;</pre>
-
-                <div class="step-guide" style="margin-top: 20px;">
-                    <div class="step">
-                        <div class="step-num">3</div>
-                        <div class="step-text">Sube tus textos a la tabla <code>documents</code> asegurándote de que el
-                            campo <code>kb_id</code> coincida con el que pusiste en el paso 1.</div>
-                    </div>
-                </div>
-            </div>
-            <div class="modal-footer">
-                <button class="btn-primary" onclick="hideRagHelp()" style="width: 100%;">ENTENDIDO</button>
-            </div>
-        </div>
-    </div>
-
     <script>
         let editor;
         let currentAgentId = null;
@@ -407,18 +231,9 @@ $$;</pre>
                 document.getElementById('temperature').value = agent.temperature ?? 0.8;
                 document.getElementById('maxTokens').value = agent.max_tokens || 400;
                 document.getElementById('reminderText').value = agent.reminder_text || '';
-                document.getElementById('knowledgeBase').value = agent.knowledge_base || '';
-                document.getElementById('webhookUrl').value = agent.webhook_url || '';
-                document.getElementById('hangupPhrases').value = agent.hangup_phrases || '';
-                document.getElementById('extractionFields').value = agent.extraction_fields || '';
                 document.getElementById('language').value = agent.language || 'Spanish';
                 document.getElementById('openaiApiKey').value = agent.openai_api_key || '';
                 document.getElementById('retellApiKey').value = agent.retell_api_key || '';
-
-                // Advanced Call Settings
-                document.getElementById('endCallSilence').value = agent.end_call_silence_ms || 600000;
-                document.getElementById('maxCallDuration').value = agent.max_call_duration_ms || 3600000;
-                document.getElementById('ringDuration').value = agent.ring_duration_s || 30;
 
                 const wsBase = window.location.origin.replace('http', 'ws');
                 document.getElementById('retellUrl').value = `${wsBase}/llm-websocket/{{call_id}}?agent_id=${agent.id}`;
@@ -443,16 +258,9 @@ $$;</pre>
             document.getElementById('temperature').value = 0.8;
             document.getElementById('maxTokens').value = 400;
             document.getElementById('reminderText').value = '';
-            document.getElementById('knowledgeBase').value = '';
-            document.getElementById('webhookUrl').value = '';
-            document.getElementById('hangupPhrases').value = '';
-            document.getElementById('extractionFields').value = '';
             document.getElementById('language').value = 'Spanish';
             document.getElementById('openaiApiKey').value = '';
             document.getElementById('retellApiKey').value = '';
-            document.getElementById('endCallSilence').value = 600000;
-            document.getElementById('maxCallDuration').value = 3600000;
-            document.getElementById('ringDuration').value = 30;
 
             document.getElementById('retellUrl').value = 'Guarda para generar URL';
             document.getElementById('agentMetadata').textContent = '';
@@ -477,17 +285,9 @@ $$;</pre>
                 temperature: parseFloat(document.getElementById('temperature').value),
                 max_tokens: parseInt(document.getElementById('maxTokens').value),
                 reminder_text: document.getElementById('reminderText').value,
-                knowledge_base: document.getElementById('knowledgeBase').value,
-                webhook_url: document.getElementById('webhookUrl').value,
-                hangup_phrases: document.getElementById('hangupPhrases').value,
-                extraction_fields: document.getElementById('extractionFields').value,
                 language: document.getElementById('language').value,
                 openai_api_key: document.getElementById('openaiApiKey').value,
                 retell_api_key: document.getElementById('retellApiKey').value,
-                // Advanced Call Settings
-                end_call_silence_ms: parseInt(document.getElementById('endCallSilence').value),
-                max_call_duration_ms: parseInt(document.getElementById('maxCallDuration').value),
-                ring_duration_s: parseInt(document.getElementById('ringDuration').value)
             };
 
             try {
@@ -540,20 +340,6 @@ $$;</pre>
                 el.textContent = '';
                 el.className = 'status';
             }, 3000);
-        }
-
-        function showRagHelp() {
-            document.getElementById('ragModal').classList.remove('hidden');
-        }
-
-        function hideRagHelp() {
-            document.getElementById('ragModal').classList.add('hidden');
-        }
-
-        function copySql() {
-            const sqlText = document.getElementById("ragSql").innerText;
-            navigator.clipboard.writeText(sqlText);
-            showStatus('SQL COPIADO', 'success');
         }
 
         document.getElementById('saveBtn').addEventListener('click', saveAgent);

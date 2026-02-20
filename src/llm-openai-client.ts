@@ -18,25 +18,17 @@ export class LlmOpenAiClient {
     private temperature: number = 0.7;
     private maxTokens: number = 512;
     private reminderText: string = "";
-    private knowledgeBase: string = "";
-    private webhookUrl: string = "";
-    private hangupPhrases: string[] = [];
-    private extractionFields: string = "";
     private language: string = "Spanish";
     private supabase: any;
 
     constructor() {
-        this.openaiClient = new OpenAI({
-            apiKey: process.env.OPENAI_API_KEY,
-        });
+        // We will initialize the OpenAI client per-agent in initialize()
+        this.openaiClient = null as any;
 
         const supabaseUrl = process.env.SUPABASE_URL || "";
         const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY || "";
         this.supabase = createClient(supabaseUrl, supabaseKey);
 
-        if (!process.env.OPENAI_API_KEY) {
-            console.error("[LlmOpenAiClient] CRITICAL: OPENAI_API_KEY is missing from environment.");
-        }
 
         // Default values
         this.systemPrompt = "";
@@ -45,10 +37,6 @@ export class LlmOpenAiClient {
         this.temperature = 0.8;
         this.maxTokens = 400;
         this.reminderText = "";
-        this.knowledgeBase = "";
-        this.webhookUrl = "";
-        this.hangupPhrases = [];
-        this.extractionFields = "";
         this.language = "es";
         this.agentId = "";
     }
@@ -72,18 +60,17 @@ export class LlmOpenAiClient {
                 this.temperature = 0; // Enforced for deterministic behavior and task consistency (Lesson 4)
                 this.maxTokens = data.max_tokens || 400;
                 this.reminderText = data.reminder_text || "";
-                this.knowledgeBase = data.knowledge_base || "";
-                this.webhookUrl = data.webhook_url || "";
-                this.hangupPhrases = data.hangup_phrases ? data.hangup_phrases.split(",").map((s: string) => s.trim().toLowerCase()) : [];
-                this.extractionFields = data.extraction_fields || "";
                 this.language = data.language || "es";
 
-                // Multi-user: Use agent-specific OpenAI key if available
+                // Multi-user: Strictly use agent-specific OpenAI key
                 if (data.openai_api_key) {
-                    console.log(`[${agentId}] Using agent-specific OpenAI API Key.`);
+                    console.log(`[${agentId}] Initializing OpenAI with agent-specific key.`);
                     this.openaiClient = new OpenAI({
                         apiKey: data.openai_api_key,
                     });
+                } else {
+                    console.warn(`[${agentId}] WARNING: No OpenAI API key found for this agent.`);
+                    this.openaiClient = null as any;
                 }
 
                 console.log(`Config loaded for agent: ${agentId}`);
@@ -93,36 +80,6 @@ export class LlmOpenAiClient {
         }
     }
 
-    /**
-     * Simple RAG: Search Supabase for relevant content.
-     * Expects a 'documents' table with 'content' and 'embedding' columns.
-     */
-    async getRelevantContext(query: string): Promise<string> {
-        if (!this.knowledgeBase) return "";
-        try {
-            // 1. Generate embedding for the query
-            const embeddingResponse = await this.openaiClient.embeddings.create({
-                model: "text-embedding-3-small",
-                input: query,
-            });
-            const embedding = embeddingResponse.data[0].embedding;
-
-            // 2. Search Supabase using vector similarity
-            // Requires match_documents stored procedure
-            const { data, error } = await this.supabase.rpc("match_documents", {
-                query_embedding: embedding,
-                match_threshold: 0.5,
-                match_count: 3,
-                filter_kb_id: this.knowledgeBase
-            });
-
-            if (error || !data) return "";
-            return data.map((d: any) => d.content).join("\n\n");
-        } catch (err) {
-            console.error("RAG Error:", err);
-            return "";
-        }
-    }
 
     /**
      * Called when WebSocket connection is established.
@@ -173,16 +130,7 @@ export class LlmOpenAiClient {
 
         console.log(`[${request.response_id}] [LLM] Processing ${request.interaction_type}...`);
 
-        // 1. Context Retrieval (RAG)
-        let context = "";
-        const lastUserMessage = request.transcript?.filter(u => u.role === "user").pop();
-        if (lastUserMessage && this.knowledgeBase) {
-            try {
-                context = await this.getRelevantContext(lastUserMessage.content);
-            } catch (err) {
-                console.error(`[${request.response_id}] RAG Error:`, err);
-            }
-        }
+        console.log(`[${request.response_id}] [LLM] Processing ${request.interaction_type}...`);
 
         // 2. Build System Prompt with Voice Protocol (5 Lessons)
         let fullSystemPrompt = `## Advanced Voice Protocol:\n`;
@@ -192,10 +140,6 @@ export class LlmOpenAiClient {
         fullSystemPrompt += `- TURNS: Be concise to encourage a fast back-and-forth.\n\n`;
 
         fullSystemPrompt += `## User System Prompt:\n${this.systemPrompt}`;
-
-        if (context) {
-            fullSystemPrompt += `\n\n## Relevant Context (RAG - Less is more):\n${context}`;
-        }
 
         const messages: any[] = [{ role: "system", content: fullSystemPrompt || "Eres un asistente de voz servicial." }];
         if (request.transcript) {
@@ -217,6 +161,9 @@ export class LlmOpenAiClient {
         console.log(`[${request.response_id}] [OpenAI] Querying ${this.model}... Payload: ${JSON.stringify(messages).substring(0, 300)}...`);
 
         try {
+            if (!this.openaiClient) {
+                throw new Error("No OpenAI API Key configured for this agent. Please add it in the dashboard.");
+            }
             const stream = await this.openaiClient.chat.completions.create({
                 model: this.model as any,
                 messages: messages,
@@ -253,18 +200,6 @@ export class LlmOpenAiClient {
             }));
 
             console.log(`[${request.response_id}] [LLM] Success. Length: ${fullAgentResponse.length}`);
-
-            // 3. Lead Capture & Hangup detection
-            if (this.hangupPhrases.some(p => fullAgentResponse.toLowerCase().includes(p))) {
-                console.log(`[${request.response_id}] [Protocol] Hangup phrase detected.`);
-                ws.send(JSON.stringify({
-                    response_type: "response",
-                    response_id: request.response_id,
-                    content: "",
-                    content_complete: true,
-                    end_call: true,
-                }));
-            }
         } catch (err: any) {
             console.error(`[${request.response_id}] [OpenAI] CRITICAL ERROR:`, {
                 message: err.message,

@@ -94,17 +94,8 @@ export interface Agent {
     temperature: number;
     max_tokens: number;
     reminder_text: string;
-    // New fields
-    knowledge_base?: string;
-    webhook_url?: string;
-    hangup_phrases?: string; // Comma separated
-    extraction_fields?: string; // Comma separated
-    language?: string;
     // API Keys for Multi-user support
     openai_api_key?: string;
     retell_api_key?: string;
-    // Advanced Call Settings
-    end_call_silence_ms?: number;
-    max_call_duration_ms?: number;
-    ring_duration_s?: number;
+    language?: string;
 }
