@@ -60,105 +60,121 @@
 
         <!-- Settings Pane (Right) -->
         <div id="settingsArea" class="settings-pane hidden">
-            <!-- API Keys -->
-            <div class="card">
-                <div class="card-header" onclick="toggleAccordion('api-content', this)">
-                    <h3>API Keys (Multi-User)</h3>
-                    <svg class="chevron rotated" width="16" height="16" viewBox="0 0 24 24" fill="none"
-                        stroke="currentColor" stroke-width="2">
-                        <path d="M6 9l6 6 6-6" />
-                    </svg>
-                </div>
-                <div id="api-content" class="card-content accordion-content active">
-                    <div class="field">
-                        <label>OpenAI API Key</label>
-                        <input type="password" id="openaiApiKey" placeholder="sk-...">
-                        <p class="field-desc">Para que la IA pueda hablar. Se guarda por agente.</p>
-                    </div>
-                    <div class="field">
-                        <label>Retell API Key</label>
-                        <input type="password" id="retellApiKey" placeholder="Su Retell Key">
-                        <p class="field-desc">Para gestionar voces y números de este agente.</p>
-                    </div>
-                </div>
+            <div class="field">
+                <label>Proveedor (Brain)</label>
+                <select id="provider" onchange="updateProviderUI()">
+                    <option value="openai">OpenAI (GPT)</option>
+                    <option value="anthropic">Anthropic (Claude)</option>
+                    <option value="deepseek">DeepSeek (Potente/Económico)</option>
+                </select>
             </div>
-
-            <!-- Integration -->
-            <div class="card">
-                <div class="card-header" onclick="toggleAccordion('retell-content', this)">
-                    <h3>Retell AI Integration</h3>
-                    <svg class="chevron rotated" width="16" height="16" viewBox="0 0 24 24" fill="none"
-                        stroke="currentColor" stroke-width="2">
-                        <path d="M6 9l6 6 6-6" />
-                    </svg>
-                </div>
-                <div id="retell-content" class="card-content accordion-content active">
-                    <div class="field">
-                        <label>Custom LLM URL</label>
-                        <div class="url-copy-wrapper">
-                            <input type="text" id="retellUrl" readonly>
-                            <button class="btn-secondary" onclick="copyUrl()">COPIAR</button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Model Parameters -->
-            <div class="card">
-                <div class="card-header" onclick="toggleAccordion('model-content', this)">
-                    <h3>Modelo y Parámetros</h3>
-                    <svg class="chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                        stroke-width="2">
-                        <path d="M6 9l6 6 6-6" />
-                    </svg>
-                </div>
-                <div id="model-content" class="card-content accordion-content">
-                    <div class="row">
-                        <div class="field">
-                            <label>Modelo</label>
-                            <select id="model">
-                                <option value="gpt-4o-mini">gpt-4.1-mini (Recomendado)</option>
-                                <option value="gpt-4o">gpt-4.1 (Pro)</option>
-                                <option value="o3-mini">o3-mini</option>
-                            </select>
-                        </div>
-                        <div class="field">
-                            <label>Idioma</label>
-                            <select id="language">
-                                <option value="Spanish">Español</option>
-                                <option value="English">Inglés</option>
-                            </select>
-                        </div>
-                    </div>
-                    <div class="row">
-                        <div class="field">
-                            <label>Temp</label>
-                            <input type="number" id="temperature" step="0.1" value="0.8">
-                        </div>
-                        <div class="field">
-                            <label>Max Tokens</label>
-                            <input type="number" id="maxTokens" value="400">
-                        </div>
-                    </div>
-                    <div class="field">
-                        <label>Texto recordatorio (silencio)</label>
-                        <input type="text" id="reminderText">
-                    </div>
-                </div>
-            </div>
-
-            <button class="btn-danger" id="deleteBtn">ELIMINAR AGENTE</button>
         </div>
+    </div>
 
-        <!-- Empty State -->
-        <main id="emptyArea" class="empty-pane">
-            <div class="brand" style="font-size: 3.5rem; margin-bottom: 2rem;">IA AL TELÉFONO</div>
-            <p style="color: var(--text-muted); margin-bottom: 32px; font-size: 1.1rem;">Selecciona un agente de la
-                lista o crea uno nuevo para empezar.</p>
-            <button onclick="createNewAgent()"
-                style="width: auto; padding: 14px 28px; background: var(--text-main); color: white; border: none; font-weight: 600;">+
-                CREAR NUEVO AGENTE</button>
-        </main>
+    <!-- API Keys -->
+    <div class="card">
+        <div class="card-header" onclick="toggleAccordion('api-content', this)">
+            <h3>API Keys (Multi-User)</h3>
+            <svg class="chevron rotated" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                stroke-width="2">
+                <path d="M6 9l6 6 6-6" />
+            </svg>
+        </div>
+        <div id="api-content" class="card-content accordion-content active">
+            <div id="openaiKeyField" class="field">
+                <label>OpenAI API Key</label>
+                <input type="password" id="openaiApiKey" placeholder="sk-...">
+            </div>
+            <div id="anthropicKeyField" class="field hidden">
+                <label>Anthropic API Key</label>
+                <input type="password" id="anthropicApiKey" placeholder="sk-ant-...">
+            </div>
+            <div id="deepseekKeyField" class="field hidden">
+                <label>DeepSeek API Key</label>
+                <input type="password" id="deepseekApiKey" placeholder="sk-...">
+                <p class="field-desc">DeepSeek usa el mismo protocolo que OpenAI.</p>
+            </div>
+            <div class="field">
+                <label>Retell API Key</label>
+                <input type="password" id="retellApiKey" placeholder="Su Retell Key">
+            </div>
+        </div>
+    </div>
+
+    <!-- Integration -->
+    <div class="card">
+        <div class="card-header" onclick="toggleAccordion('retell-content', this)">
+            <h3>Retell AI Integration</h3>
+            <svg class="chevron rotated" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                stroke-width="2">
+                <path d="M6 9l6 6 6-6" />
+            </svg>
+        </div>
+        <div id="retell-content" class="card-content accordion-content active">
+            <div class="field">
+                <label>Custom LLM URL</label>
+                <div class="url-copy-wrapper">
+                    <input type="text" id="retellUrl" readonly>
+                    <button class="btn-secondary" onclick="copyUrl()">COPIAR</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Model Parameters -->
+    <div class="card">
+        <div class="card-header" onclick="toggleAccordion('model-content', this)">
+            <h3>Modelo y Parámetros</h3>
+            <svg class="chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                stroke-width="2">
+                <path d="M6 9l6 6 6-6" />
+            </svg>
+        </div>
+        <div id="model-content" class="card-content accordion-content">
+            <div class="row">
+                <div class="field">
+                    <label>Modelo</label>
+                    <select id="model">
+                        <!-- Options populated by JS -->
+                    </select>
+                </div>
+                <div class="field">
+                    <label>Idioma</label>
+                    <select id="language">
+                        <option value="Spanish">Español</option>
+                        <option value="English">Inglés</option>
+                    </select>
+                </div>
+            </div>
+            <div class="row">
+                <div class="field">
+                    <label>Temp</label>
+                    <input type="number" id="temperature" step="0.1" value="0.8">
+                </div>
+                <div class="field">
+                    <label>Max Tokens</label>
+                    <input type="number" id="maxTokens" value="400">
+                </div>
+            </div>
+            <div class="field">
+                <label>Texto recordatorio (silencio)</label>
+                <input type="text" id="reminderText">
+            </div>
+        </div>
+    </div>
+
+    <button class="btn-danger" id="deleteBtn">ELIMINAR AGENTE</button>
+    </div>
+
+    <!-- Empty State -->
+    <main id="emptyArea" class="empty-pane">
+        <div class="brand" style="font-size: 3.5rem; margin-bottom: 2rem;">IA AL TELÉFONO</div>
+        <p style="color: var(--text-muted); margin-bottom: 32px; font-size: 1.1rem;">Selecciona un agente de la
+            lista o crea uno nuevo para empezar.</p>
+        <button onclick="createNewAgent()"
+            style="width: auto; padding: 14px 28px; background: var(--text-main); color: white; border: none; font-weight: 600;">+
+            CREAR NUEVO AGENTE</button>
+    </main>
     </div>
 
     <script>
@@ -227,12 +243,18 @@
                 document.getElementById('agentName').value = agent.name;
                 editor.setValue(agent.system_prompt || '');
                 document.getElementById('greeting').value = agent.greeting || '';
-                document.getElementById('model').value = agent.model || 'gpt-4o-mini';
+                document.getElementById('provider').value = agent.provider || 'openai';
+                updateProviderUI(); // Important to refresh model list and keys
+                document.getElementById('model').value = agent.model || (agent.provider === 'anthropic' ? 'claude-3-5-haiku-latest' : 'gpt-4o-mini');
                 document.getElementById('temperature').value = agent.temperature ?? 0.8;
                 document.getElementById('maxTokens').value = agent.max_tokens || 400;
                 document.getElementById('reminderText').value = agent.reminder_text || '';
                 document.getElementById('language').value = agent.language || 'Spanish';
                 document.getElementById('openaiApiKey').value = agent.openai_api_key || '';
+                document.getElementById('anthropicApiKey').value = agent.anthropic_api_key || '';
+                // DeepSeek uses openaiApiKey slot/logic for simplicity in this proto, or we can map it
+                if (agent.provider === 'deepseek') document.getElementById('deepseekApiKey').value = agent.openai_api_key || '';
+
                 document.getElementById('retellApiKey').value = agent.retell_api_key || '';
 
                 const wsBase = window.location.origin.replace('http', 'ws');
@@ -254,12 +276,16 @@
             document.getElementById('agentName').value = 'Nuevo Agente';
             editor.setValue('');
             document.getElementById('greeting').value = 'Hola, ¿en qué puedo ayudarte?';
+            document.getElementById('provider').value = 'openai';
+            updateProviderUI();
             document.getElementById('model').value = 'gpt-4o-mini';
             document.getElementById('temperature').value = 0.8;
             document.getElementById('maxTokens').value = 400;
             document.getElementById('reminderText').value = '';
             document.getElementById('language').value = 'Spanish';
             document.getElementById('openaiApiKey').value = '';
+            document.getElementById('anthropicApiKey').value = '';
+            document.getElementById('deepseekApiKey').value = '';
             document.getElementById('retellApiKey').value = '';
 
             document.getElementById('retellUrl').value = 'Guarda para generar URL';
@@ -281,12 +307,14 @@
                 name: document.getElementById('agentName').value,
                 system_prompt: editor.getValue(),
                 greeting: document.getElementById('greeting').value,
+                provider: document.getElementById('provider').value,
                 model: document.getElementById('model').value,
                 temperature: parseFloat(document.getElementById('temperature').value),
                 max_tokens: parseInt(document.getElementById('maxTokens').value),
                 reminder_text: document.getElementById('reminderText').value,
                 language: document.getElementById('language').value,
-                openai_api_key: document.getElementById('openaiApiKey').value,
+                openai_api_key: document.getElementById('provider').value === 'openai' ? document.getElementById('openaiApiKey').value : (document.getElementById('provider').value === 'deepseek' ? document.getElementById('deepseekApiKey').value : ''),
+                anthropic_api_key: document.getElementById('provider').value === 'anthropic' ? document.getElementById('anthropicApiKey').value : '',
                 retell_api_key: document.getElementById('retellApiKey').value,
             };
 
@@ -343,6 +371,36 @@
         }
 
         document.getElementById('saveBtn').addEventListener('click', saveAgent);
+
+        const modelsByProvider = {
+            openai: [
+                { val: 'gpt-4o-mini', label: 'gpt-4o-mini (Recomendado)' },
+                { val: 'gpt-4o', label: 'gpt-4o (Pro)' },
+                { val: 'o3-mini', label: 'o3-mini' }
+            ],
+            anthropic: [
+                { val: 'claude-3-5-haiku-latest', label: 'Claude 3.5 Haiku (Rápido)' },
+                { val: 'claude-3-5-sonnet-latest', label: 'Claude 3.5 Sonnet (Inteligente)' }
+            ],
+            deepseek: [
+                { val: 'deepseek-chat', label: 'DeepSeek V3 (Económico)' },
+                { val: 'deepseek-reasoner', label: 'DeepSeek R1 (Razonamiento)' }
+            ]
+        };
+
+        function updateProviderUI() {
+            const provider = document.getElementById('provider').value;
+
+            // Show/hide relevant key fields
+            document.getElementById('openaiKeyField').classList.toggle('hidden', provider !== 'openai');
+            document.getElementById('anthropicKeyField').classList.toggle('hidden', provider !== 'anthropic');
+            document.getElementById('deepseekKeyField').classList.toggle('hidden', provider !== 'deepseek');
+
+            // Update model list
+            const modelSelect = document.getElementById('model');
+            const models = modelsByProvider[provider] || [];
+            modelSelect.innerHTML = models.map(m => `<option value="${m.val}">${m.label}</option>`).join('');
+        }
         document.getElementById('newAgentBtn').addEventListener('click', createNewAgent);
         document.getElementById('deleteBtn').addEventListener('click', deleteAgent);
     </script>

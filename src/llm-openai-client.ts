@@ -1,4 +1,5 @@
 import OpenAI from "openai";
+import Anthropic from "@anthropic-ai/sdk";
 import { WebSocket } from "ws";
 import { createClient } from "@supabase/supabase-js";
 import {
@@ -7,34 +8,35 @@ import {
 } from "./types";
 
 /**
- * Custom LLM client using OpenAI GPT for Retell AI.
+ * Multi-provider LLM client supporting OpenAI, Anthropic, and DeepSeek.
  */
 export class LlmOpenAiClient {
-    private openaiClient: OpenAI;
+    private openaiClient: OpenAI | null = null;
+    private anthropicClient: Anthropic | null = null;
     public agentId: string | null = null;
     public greeting: string = "";
     private systemPrompt: string = "";
     private model: string = "gpt-4o-mini";
-    private temperature: number = 0.7;
+    private provider: string = "openai";
+    private temperature: number = 0;
     private maxTokens: number = 512;
     private reminderText: string = "";
     private language: string = "Spanish";
     private supabase: any;
 
     constructor() {
-        // We will initialize the OpenAI client per-agent in initialize()
-        this.openaiClient = null as any;
+        this.openaiClient = null;
+        this.anthropicClient = null;
 
         const supabaseUrl = process.env.SUPABASE_URL || "";
         const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY || "";
         this.supabase = createClient(supabaseUrl, supabaseKey);
 
-
         // Default values
         this.systemPrompt = "";
         this.greeting = "";
         this.model = "gpt-4o-mini";
-        this.temperature = 0.8;
+        this.temperature = 0;
         this.maxTokens = 400;
         this.reminderText = "";
         this.language = "es";
@@ -57,20 +59,27 @@ export class LlmOpenAiClient {
                 this.systemPrompt = data.system_prompt || "";
                 this.greeting = data.greeting || "";
                 this.model = data.model || "gpt-4o-mini";
-                this.temperature = 0; // Enforced for deterministic behavior and task consistency (Lesson 4)
+                this.provider = data.provider || "openai";
+                this.temperature = 0; // Enforced for voice consistency
                 this.maxTokens = data.max_tokens || 400;
                 this.reminderText = data.reminder_text || "";
                 this.language = data.language || "es";
 
-                // Multi-user: Strictly use agent-specific OpenAI key
-                if (data.openai_api_key) {
-                    console.log(`[${agentId}] Initializing OpenAI with agent-specific key.`);
+                // Multi-provider initialization
+                if (this.provider === "openai" && data.openai_api_key) {
+                    console.log(`[${agentId}] IA: OpenAI (${this.model})`);
+                    this.openaiClient = new OpenAI({ apiKey: data.openai_api_key });
+                } else if (this.provider === "anthropic" && data.anthropic_api_key) {
+                    console.log(`[${agentId}] IA: Anthropic (${this.model})`);
+                    this.anthropicClient = new Anthropic({ apiKey: data.anthropic_api_key });
+                } else if (this.provider === "deepseek" && data.openai_api_key) {
+                    console.log(`[${agentId}] IA: DeepSeek (${this.model})`);
                     this.openaiClient = new OpenAI({
                         apiKey: data.openai_api_key,
+                        baseURL: "https://api.deepseek.com/v1"
                     });
                 } else {
-                    console.warn(`[${agentId}] WARNING: No OpenAI API key found for this agent.`);
-                    this.openaiClient = null as any;
+                    console.warn(`[${agentId}] WARNING: No API key for provider ${this.provider}`);
                 }
 
                 console.log(`Config loaded for agent: ${agentId}`);
@@ -161,36 +170,59 @@ export class LlmOpenAiClient {
         console.log(`[${request.response_id}] [OpenAI] Querying ${this.model}... Payload: ${JSON.stringify(messages).substring(0, 300)}...`);
 
         try {
-            if (!this.openaiClient) {
-                throw new Error("No OpenAI API Key configured for this agent. Please add it in the dashboard.");
-            }
-            const stream = await this.openaiClient.chat.completions.create({
-                model: this.model as any,
-                messages: messages,
-                temperature: this.temperature,
-                max_tokens: this.maxTokens,
-                stream: true,
-            });
+            if (this.provider === "openai" || this.provider === "deepseek") {
+                if (!this.openaiClient) throw new Error(`No se ha configurado la API Key para ${this.provider}.`);
 
-            console.log(`[${request.response_id}] [OpenAI] Streaming response...`);
-            let fullAgentResponse = "";
+                const stream = await this.openaiClient.chat.completions.create({
+                    model: this.model as any,
+                    messages: messages,
+                    temperature: this.temperature,
+                    max_tokens: this.maxTokens,
+                    stream: true,
+                });
 
-            for await (const chunk of stream) {
-                const delta = chunk.choices[0]?.delta?.content;
-                if (delta) {
-                    fullAgentResponse += delta;
-                    const event: RetellResponseEvent = {
-                        response_type: "response",
-                        response_id: request.response_id, // Match the ID
-                        content: delta,
-                        content_complete: false,
-                        end_call: false,
-                    };
-                    ws.send(JSON.stringify(event));
+                for await (const chunk of stream) {
+                    const delta = chunk.choices[0]?.delta?.content;
+                    if (delta) {
+                        ws.send(JSON.stringify({
+                            response_type: "response",
+                            response_id: request.response_id,
+                            content: delta,
+                            content_complete: false,
+                            end_call: false,
+                        }));
+                    }
+                }
+            } else if (this.provider === "anthropic") {
+                if (!this.anthropicClient) throw new Error("No se ha configurado la API Key para Anthropic.");
+
+                // Convert messages to Anthropic format
+                const anthropicMessages: any[] = messages.filter(m => m.role !== "system");
+                const systemPrompt = messages.find(m => m.role === "system")?.content || "";
+
+                const stream = await this.anthropicClient.messages.create({
+                    model: this.model,
+                    max_tokens: this.maxTokens,
+                    temperature: this.temperature,
+                    system: systemPrompt,
+                    messages: anthropicMessages,
+                    stream: true,
+                });
+
+                for await (const event of stream) {
+                    if (event.type === 'content_block_delta' && (event.delta as any).text) {
+                        ws.send(JSON.stringify({
+                            response_type: "response",
+                            response_id: request.response_id,
+                            content: (event.delta as any).text,
+                            content_complete: false,
+                            end_call: false,
+                        }));
+                    }
                 }
             }
 
-            // End of stream
+            // Common End of stream
             ws.send(JSON.stringify({
                 response_type: "response",
                 response_id: request.response_id,
@@ -198,8 +230,6 @@ export class LlmOpenAiClient {
                 content_complete: true,
                 end_call: false,
             }));
-
-            console.log(`[${request.response_id}] [LLM] Success. Length: ${fullAgentResponse.length}`);
         } catch (err: any) {
             console.error(`[${request.response_id}] [OpenAI] CRITICAL ERROR:`, {
                 message: err.message,

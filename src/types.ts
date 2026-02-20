@@ -94,8 +94,10 @@ export interface Agent {
     temperature: number;
     max_tokens: number;
     reminder_text: string;
-    // API Keys for Multi-user support
+    // Multi-model support
+    provider?: "openai" | "anthropic" | "deepseek"; // Defaults to openai
     openai_api_key?: string;
+    anthropic_api_key?: string;
     retell_api_key?: string;
     language?: string;
 }
