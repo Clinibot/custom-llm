@@ -17,7 +17,31 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/6.65.7/mode/markdown/markdown.min.js"></script>
 </head>
 
-<body>
+<body class="auth-locked">
+    <!-- Auth Overlay -->
+    <div id="authOverlay" class="modal-overlay">
+        <div class="modal" style="max-width: 400px; text-align: center;">
+            <div class="modal-header">
+                <h2 style="width: 100%;">¡Bienvenido a IA al Teléfono!</h2>
+            </div>
+            <div class="modal-body">
+                <p style="margin-bottom: 24px; color: var(--text-muted);">Regístrate o entra con tu email para empezar a
+                    crear tus agentes.</p>
+                <div class="field" style="text-align: left;">
+                    <label>Tu Nombre</label>
+                    <input type="text" id="userName" placeholder="Juan Pérez">
+                </div>
+                <div class="field" style="text-align: left;">
+                    <label>Tu Email</label>
+                    <input type="email" id="userEmail" placeholder="juan@ejemplo.com">
+                </div>
+                <button id="authBtn" onclick="handleAuth()"
+                    style="width: 100%; margin-top: 16px; background: var(--accent); color: white; padding: 14px; border: none;">ENTRAR
+                    / REGISTRARSE</button>
+                <div id="authStatus" class="status"></div>
+            </div>
+        </div>
+    </div>
     <div class="layout">
         <!-- Sidebar - Agent List -->
         <aside>
@@ -32,6 +56,12 @@
                 <div class="status">Cargando agentes...</div>
             </nav>
             <div class="sidebar-footer">
+                <div id="userInfo"
+                    style="margin-bottom: 12px; font-size: 0.75rem; color: var(--text-muted); padding: 0 4px; display: flex; justify-content: space-between; align-items: center;">
+                    <span id="userDisplayName">Usuario</span>
+                    <button onclick="logout()"
+                        style="background: none; border: none; color: #ef4444; font-size: 0.7rem; padding: 0; text-decoration: underline;">Salir</button>
+                </div>
                 <button id="saveBtn">GUARDAR CAMBIOS</button>
                 <div id="status" class="status"></div>
             </div>
@@ -231,6 +261,7 @@
         let editor;
         let currentAgentId = null;
         let agents = [];
+        let profile = null;
 
         window.addEventListener('DOMContentLoaded', () => {
             editor = CodeMirror.fromTextArea(document.getElementById('systemPrompt'), {
@@ -240,8 +271,72 @@
                 lineWrapping: true,
                 viewportMargin: Infinity
             });
-            loadAgentList();
+            checkAuth();
         });
+
+        function checkAuth() {
+            const savedProfile = localStorage.getItem('clinibot_profile');
+            if (savedProfile) {
+                profile = JSON.parse(savedProfile);
+                document.body.classList.remove('auth-locked');
+                document.getElementById('authOverlay').classList.add('hidden');
+                document.getElementById('userDisplayName').textContent = profile.name;
+                loadAgentList();
+            } else {
+                document.body.classList.add('auth-locked');
+                document.getElementById('authOverlay').classList.remove('hidden');
+            }
+        }
+
+        async function handleAuth() {
+            const name = document.getElementById('userName').value;
+            const email = document.getElementById('userEmail').value;
+            const btn = document.getElementById('authBtn');
+            const status = document.getElementById('authStatus');
+
+            if (!name || !email) {
+                status.textContent = 'Nombre y Email requeridos';
+                status.className = 'status error';
+                return;
+            }
+
+            btn.disabled = true;
+            btn.textContent = 'AUTENTICANDO...';
+
+            try {
+                const res = await fetch('/api/auth/register', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ name, email })
+                });
+
+                if (!res.ok) throw new Error('Error en autenticación');
+
+                profile = await res.json();
+                localStorage.setItem('clinibot_profile', JSON.stringify(profile));
+                checkAuth();
+            } catch (err) {
+                status.textContent = 'Error al entrar';
+                status.className = 'status error';
+            } finally {
+                btn.disabled = false;
+                btn.textContent = 'ENTRAR / REGISTRARSE';
+            }
+        }
+
+        function logout() {
+            localStorage.removeItem('clinibot_profile');
+            location.reload();
+        }
+
+        async function apiFetch(url, options = {}) {
+            if (!profile) return;
+            const headers = {
+                ...options.headers,
+                'X-User-Id': profile.id
+            };
+            return fetch(url, { ...options, headers });
+        }
 
         function toggleAccordion(id, header) {
             const content = document.getElementById(id);
@@ -260,7 +355,7 @@
 
         async function loadAgentList() {
             try {
-                const res = await fetch('/api/agents');
+                const res = await apiFetch('/api/agents');
                 agents = await res.json();
                 renderAgentList();
             } catch (err) {
@@ -287,7 +382,7 @@
         async function loadAgent(id) {
             currentAgentId = id;
             try {
-                const res = await fetch(`/api/agents/${id}`);
+                const res = await apiFetch(`/api/agents/${id}`);
                 const agent = await res.json();
 
                 document.getElementById('agentName').value = agent.name;
@@ -369,7 +464,7 @@
             };
 
             try {
-                const res = await fetch('/api/agents', {
+                const res = await apiFetch('/api/agents', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(agent)
@@ -391,7 +486,7 @@
         async function deleteAgent() {
             if (!confirm('¿Seguro que quieres eliminar este agente?')) return;
             try {
-                await fetch(`/api/agents/${currentAgentId}`, { method: 'DELETE' });
+                await apiFetch(`/api/agents/${currentAgentId}`, { method: 'DELETE' });
                 currentAgentId = null;
                 document.getElementById('editorArea').classList.add('hidden');
                 document.getElementById('settingsArea').classList.add('hidden');

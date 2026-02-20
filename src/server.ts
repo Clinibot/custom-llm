@@ -13,6 +13,7 @@ import {
     RetellConfigEvent,
     RetellPingPongEvent,
     Agent,
+    Profile
 } from "./types";
 
 // ============================================================
@@ -144,32 +145,55 @@ wsInstance.app.ws(
 
 app.use(express.json());
 
-// Basic Auth Configuration
-const auth = basicAuth({
-    users: { 'sonia@sonia.com': 'sonia@sonia.com' },
-    challenge: true,
-    realm: 'Clinibot Builder'
-});
-
-// ============================================================
-// API Routes & Health
-// ============================================================
-
+// Health & Version
 app.get("/health", (_req: Request, res: Response) => {
     res.json({
         status: "ok",
-        version: "v5.0.0",
-        service: "IA Al Teléfono - Custom LLM Server (Simplified)",
+        version: "v6.0.0",
+        service: "IA Al Teléfono - Custom LLM Multi-User",
         timestamp: new Date().toISOString(),
     });
 });
 
-// Protect all other routes
-app.use((req: Request, res: Response, next: NextFunction) => {
-    if (req.path.startsWith("/llm-websocket")) {
-        return next();
+// Middleware to get current user from header
+// In this simplified version, we'll trust the X-User-Id header
+app.use((req: Request, _res: Response, next: NextFunction) => {
+    (req as any).userId = req.headers['x-user-id'];
+    next();
+});
+
+// Register or Login (returns Profile)
+app.post("/api/auth/register", async (req: Request, res: Response) => {
+    try {
+        const { name, email } = req.body;
+        if (!name || !email) return res.status(400).json({ error: "Nombre y Email son requeridos" });
+
+        // Check if user exists
+        let { data: profile, error } = await supabase
+            .from("profiles")
+            .select("*")
+            .eq("email", email)
+            .single();
+
+        if (error && error.code !== 'PGRST116') throw error;
+
+        if (!profile) {
+            // Create user
+            console.log(`[AUTH] Creating new user: ${email}`);
+            const { data, error: insertError } = await supabase
+                .from("profiles")
+                .insert([{ name, email }])
+                .select()
+                .single();
+            if (insertError) throw insertError;
+            profile = data;
+        }
+
+        res.json(profile);
+    } catch (err) {
+        console.error("Error in registration:", err);
+        res.status(500).json({ error: "Error al registrar usuario" });
     }
-    return auth(req, res, next);
 });
 
 app.use(express.static(path.join(__dirname, "../public")));
@@ -179,12 +203,16 @@ const supabaseUrl = process.env.SUPABASE_URL || "";
 const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY || "";
 const supabase = createClient(supabaseUrl, supabaseKey);
 
-// List all agents
-app.get("/api/agents", async (_req: Request, res: Response) => {
+// List agents (Filtered by User)
+app.get("/api/agents", async (req: Request, res: Response) => {
     try {
+        const userId = (req as any).userId;
+        if (!userId) return res.json([]); // Return empty list if no user
+
         const { data, error } = await supabase
             .from("agents")
             .select("id, name")
+            .eq("user_id", userId)
             .order("created_at", { ascending: false });
 
         if (error) throw error;
@@ -194,14 +222,17 @@ app.get("/api/agents", async (_req: Request, res: Response) => {
     }
 });
 
-// Get specific agent configuration
+// Get agent (Filtered by User)
 app.get("/api/agents/:id", async (req: Request, res: Response) => {
     try {
         const { id } = req.params;
+        const userId = (req as any).userId;
+
         const { data, error } = await supabase
             .from("agents")
             .select("*")
             .eq("id", id)
+            .eq("user_id", userId)
             .single();
 
         if (error) throw error;
@@ -211,15 +242,19 @@ app.get("/api/agents/:id", async (req: Request, res: Response) => {
     }
 });
 
-// Save/Update agent
+// Save/Update agent (With User ID)
 app.post("/api/agents", async (req: Request, res: Response) => {
     try {
         const agent: Agent = req.body;
+        const userId = (req as any).userId;
+        if (!userId) return res.status(401).json({ error: "Login required" });
+
         const { data, error } = await supabase
             .from("agents")
             .upsert({
                 ...agent,
-                id: agent.id || undefined
+                id: agent.id || undefined,
+                user_id: userId
             })
             .select()
             .single();
@@ -236,10 +271,13 @@ app.post("/api/agents", async (req: Request, res: Response) => {
 app.delete("/api/agents/:id", async (req: Request, res: Response) => {
     try {
         const { id } = req.params;
+        const userId = (req as any).userId;
+
         const { error } = await supabase
             .from("agents")
             .delete()
-            .eq("id", id);
+            .eq("id", id)
+            .eq("user_id", userId);
 
         if (error) throw error;
         res.json({ status: "ok" });

@@ -12,6 +12,13 @@ export interface Utterance {
     content: string;
 }
 
+export interface Profile {
+    id: string;
+    name: string;
+    email: string;
+    created_at?: string;
+}
+
 // ============================================================
 // Retell -> Your Server (Incoming Events)
 // ============================================================
@@ -100,4 +107,5 @@ export interface Agent {
     anthropic_api_key?: string;
     retell_api_key?: string;
     language?: string;
+    user_id?: string; // Link to Profile.id
 }
