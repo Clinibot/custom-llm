@@ -245,7 +245,7 @@
                 document.getElementById('greeting').value = agent.greeting || '';
                 document.getElementById('provider').value = agent.provider || 'openai';
                 updateProviderUI(); // Important to refresh model list and keys
-                document.getElementById('model').value = agent.model || (agent.provider === 'anthropic' ? 'claude-3-5-haiku-latest' : 'gpt-4o-mini');
+                document.getElementById('model').value = agent.model || (agent.provider === 'anthropic' ? 'claude-3-5-haiku-latest' : 'gpt-4.1-mini');
                 document.getElementById('temperature').value = agent.temperature ?? 0.8;
                 document.getElementById('maxTokens').value = agent.max_tokens || 400;
                 document.getElementById('reminderText').value = agent.reminder_text || '';
@@ -278,7 +278,7 @@
             document.getElementById('greeting').value = 'Hola, ¿en qué puedo ayudarte?';
             document.getElementById('provider').value = 'openai';
             updateProviderUI();
-            document.getElementById('model').value = 'gpt-4o-mini';
+            document.getElementById('model').value = 'gpt-4.1-mini';
             document.getElementById('temperature').value = 0.8;
             document.getElementById('maxTokens').value = 400;
             document.getElementById('reminderText').value = '';
@@ -374,13 +374,16 @@
 
         const modelsByProvider = {
             openai: [
-                { val: 'gpt-4o-mini', label: 'gpt-4o-mini (Recomendado)' },
-                { val: 'gpt-4o', label: 'gpt-4o (Pro)' },
+                { val: 'gpt-4.1-mini', label: 'gpt-4.1-mini (Nuevo/Eficaz)' },
+                { val: 'gpt-4.1', label: 'gpt-4.1 (Potente)' },
+                { val: 'gpt-4o-mini', label: 'gpt-4o-mini (Estable)' },
+                { val: 'gpt-4o', label: 'gpt-4o (Legacy Pro)' },
                 { val: 'o3-mini', label: 'o3-mini' }
             ],
             anthropic: [
                 { val: 'claude-3-5-haiku-latest', label: 'Claude 3.5 Haiku (Rápido)' },
-                { val: 'claude-3-5-sonnet-latest', label: 'Claude 3.5 Sonnet (Inteligente)' }
+                { val: 'claude-3-5-sonnet-latest', label: 'Claude 3.5 Sonnet (Inteligente)' },
+                { val: 'claude-3-7-sonnet-latest', label: 'Claude 3.7 Sonnet (Último)' }
             ],
             deepseek: [
                 { val: 'deepseek-chat', label: 'DeepSeek V3 (Económico)' },
