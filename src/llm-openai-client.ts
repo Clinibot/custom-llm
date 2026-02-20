@@ -188,14 +188,24 @@ export class LlmOpenAiClient {
             fullSystemPrompt += `\n\n## Relevant Context (RAG - Less is more):\n${context}`;
         }
 
-        const messages: any[] = [{ role: "system", content: fullSystemPrompt }];
+        const messages: any[] = [{ role: "system", content: fullSystemPrompt || "Eres un asistente de voz servicial." }];
         if (request.transcript) {
             request.transcript.forEach(u => {
-                messages.push({ role: u.role, content: u.content });
+                if (u.content && u.content.trim()) {
+                    messages.push({
+                        role: u.role === "agent" ? "assistant" : "user",
+                        content: u.content
+                    });
+                }
             });
         }
 
-        console.log(`[${request.response_id}] [OpenAI] Querying ${this.model}...`);
+        // Safety: If no messages, OpenAI will error. Ensure at least one system message.
+        if (messages.length === 1 && messages[0].role === "system" && (!messages[0].content)) {
+            messages[0].content = "Hola";
+        }
+
+        console.log(`[${request.response_id}] [OpenAI] Querying ${this.model}... Payload: ${JSON.stringify(messages).substring(0, 300)}...`);
 
         try {
             const stream = await this.openaiClient.chat.completions.create({
@@ -246,13 +256,20 @@ export class LlmOpenAiClient {
                     end_call: true,
                 }));
             }
-        } catch (err) {
-            console.error(`[${request.response_id}] [OpenAI] CRITICAL ERROR:`, err);
+        } catch (err: any) {
+            console.error(`[${request.response_id}] [OpenAI] CRITICAL ERROR:`, {
+                message: err.message,
+                code: err.code,
+                status: err.status,
+                type: err.type,
+                data: err.response?.data
+            });
+
             if (ws.readyState === WebSocket.OPEN) {
                 ws.send(JSON.stringify({
                     response_type: "response",
                     response_id: request.response_id,
-                    content: "Lo siento, tengo un problema técnico momentáneo.",
+                    content: `Lo siento, tengo un problema técnico momentáneo. (Error: ${err.message || 'Unknown'})`,
                     content_complete: true,
                     end_call: false,
                 }));
