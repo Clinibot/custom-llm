@@ -88,7 +88,18 @@
                         <input type="password" id="anthropicApiKey" placeholder="sk-ant-...">
                     </div>
                     <div id="deepseekKeyField" class="field hidden">
-                        <label>DeepSeek API Key</label>
+                        <div
+                            style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                            <label style="margin-bottom: 0;">DeepSeek API Key</label>
+                            <span class="info-trigger" onclick="openDeepSeekInfo()">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                    stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <circle cx="12" cy="12" r="10"></circle>
+                                    <line x1="12" y1="16" x2="12" y2="12"></line>
+                                    <line x1="12" y1="8" x2="12.01" y2="8"></line>
+                                </svg>
+                            </span>
+                        </div>
                         <input type="password" id="deepseekApiKey" placeholder="sk-...">
                         <p class="field-desc">DeepSeek usa el mismo protocolo que OpenAI.</p>
                     </div>
@@ -174,6 +185,47 @@
             style="width: auto; padding: 14px 28px; background: var(--text-main); color: white; border: none; font-weight: 600;">+
             CREAR NUEVO AGENTE</button>
     </main>
+
+    <!-- DeepSeek Info Modal -->
+    <div id="deepseekInfoModal" class="modal-overlay hidden">
+        <div class="modal">
+            <div class="modal-header">
+                <h2>¿Qué significa la compatibilidad de DeepSeek?</h2>
+                <button class="btn-icon" onclick="closeDeepSeekInfo()">×</button>
+            </div>
+            <div class="modal-body">
+                <p>DeepSeek es un proveedor de IA extremadamente potente y económico que utiliza el estándar de OpenAI
+                    para comunicarse. Esto tiene grandes ventajas:</p>
+                <div style="margin-top: 16px;">
+                    <div style="margin-bottom: 12px;">
+                        <strong>🚀 Sin errores de comunicación:</strong>
+                        <p style="font-size: 0.9rem; color: var(--text-muted);">Tu servidor no necesita un "traductor"
+                            nuevo. Simplemente cambia la dirección de envío manteniendo el formato que ya conocemos,
+                            asegurando estabilidad total.</p>
+                    </div>
+                    <div style="margin-bottom: 12px;">
+                        <strong>🧠 Facilidad de uso:</strong>
+                        <p style="font-size: 0.9rem; color: var(--text-muted);">Puedes usar los mismos Prompts, técnicas
+                            de instrucción y herramientas que usas con GPT sin tener que reaprender nada.</p>
+                    </div>
+                    <div style="margin-bottom: 12px;">
+                        <strong>⚡ Rapidez y Estabilidad:</strong>
+                        <p style="font-size: 0.9rem; color: var(--text-muted);">Al reutilizar la infraestructura
+                            diseñada para OpenAI, la conexión es inmediata y el streaming de palabras es muy fluido para
+                            llamadas.</p>
+                    </div>
+                    <div
+                        style="background: #f1f5f9; padding: 12px; border-radius: 8px; border-left: 4px solid var(--accent);">
+                        <strong>En resumen:</strong> Es como si DeepSeek fuera un "clon" perfecto de la API de OpenAI
+                        pero con un cerebro diferente y un precio muchísimo más bajo.
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer" style="text-align: right;">
+                <button class="btn-secondary" onclick="closeDeepSeekInfo()">ENTENDIDO</button>
+            </div>
+        </div>
+    </div>
 
     <script>
         let editor;
@@ -401,6 +453,14 @@
             const modelSelect = document.getElementById('model');
             const models = modelsByProvider[provider] || [];
             modelSelect.innerHTML = models.map(m => `<option value="${m.val}">${m.label}</option>`).join('');
+        }
+
+        function openDeepSeekInfo() {
+            document.getElementById('deepseekInfoModal').classList.remove('hidden');
+        }
+
+        function closeDeepSeekInfo() {
+            document.getElementById('deepseekInfoModal').classList.add('hidden');
         }
         document.getElementById('newAgentBtn').addEventListener('click', createNewAgent);
         document.getElementById('deleteBtn').addEventListener('click', deleteAgent);
