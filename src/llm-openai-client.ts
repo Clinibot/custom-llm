@@ -23,6 +23,7 @@ export class LlmOpenAiClient {
     private reminderText: string = "";
     private language: string = "Spanish";
     private supabase: any;
+    private currentAbortController: AbortController | null = null;
 
     constructor() {
         this.openaiClient = null;
@@ -149,6 +150,13 @@ export class LlmOpenAiClient {
             return;
         }
 
+        // Abort previous LLM request if a new one comes in to avoid concurrency limit (ZAI Error 429/1302)
+        if (this.currentAbortController) {
+            console.log(`[${request.response_id}] [LLM] Aborting previous request to avoid concurrency overlap...`);
+            this.currentAbortController.abort();
+        }
+        this.currentAbortController = new AbortController();
+
         console.log(`[${request.response_id}] [LLM] Processing ${request.interaction_type}...`);
 
         console.log(`[${request.response_id}] [LLM] Processing ${request.interaction_type}...`);
@@ -193,7 +201,7 @@ export class LlmOpenAiClient {
                     temperature: this.temperature,
                     max_tokens: this.maxTokens,
                     stream: true,
-                });
+                }, { signal: this.currentAbortController.signal });
 
                 const timeoutPromise = new Promise((_, reject) =>
                     setTimeout(() => reject(new Error("Timeout de conexión con el proveedor AI (ZAI/OpenAI).")), 7000)
@@ -227,7 +235,7 @@ export class LlmOpenAiClient {
                     system: systemPrompt,
                     messages: anthropicMessages,
                     stream: true,
-                });
+                }, { signal: this.currentAbortController.signal });
 
                 for await (const event of stream) {
                     if (event.type === 'content_block_delta' && (event.delta as any).text) {
@@ -251,6 +259,12 @@ export class LlmOpenAiClient {
                 end_call: false,
             }));
         } catch (err: any) {
+            // Ignore abort errors silently, as this means we purposely cancelled to make a new request
+            if (err.name === 'AbortError' || (err.message && err.message.includes('abort'))) {
+                console.log(`[${request.response_id}] [LLM] Request aborted intentionally.`);
+                return;
+            }
+
             console.error(`[${request.response_id}] [OpenAI] CRITICAL ERROR:`, {
                 message: err.message,
                 code: err.code,
