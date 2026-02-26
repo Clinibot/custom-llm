@@ -60,6 +60,11 @@ export class LlmOpenAiClient {
                 this.greeting = data.greeting || "";
                 this.model = data.model || "gpt-4o-mini";
                 this.provider = data.provider || "openai";
+
+                if (this.provider === "zai") {
+                    if (this.model === "glm-4.7") this.model = "glm-4.7-flash";
+                    // If others are wrong we can map them here too
+                }
                 this.temperature = 0; // Enforced for voice consistency
                 this.maxTokens = data.max_tokens || 400;
                 this.reminderText = data.reminder_text || "";
