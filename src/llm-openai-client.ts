@@ -92,7 +92,7 @@ export class LlmOpenAiClient {
                     console.log(`[${agentId}] 🧠 Brain: Z.AI (GLM) | Model: ${this.model}`);
                     this.openaiClient = new OpenAI({
                         apiKey: data.openai_api_key,
-                        baseURL: "https://api.z.ai/api/paas/v4/"
+                        baseURL: "https://open.bigmodel.cn/api/paas/v4/"
                     });
                 } else {
                     console.warn(`[${agentId}] ⚠️ WARNING: Proveedor [${this.provider}] seleccionado pero NO se encontró API Key válida en Supabase.`);
