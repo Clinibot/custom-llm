@@ -162,8 +162,6 @@ export class LlmOpenAiClient {
 
         console.log(`[${request.response_id}] [LLM] Processing ${request.interaction_type}...`);
 
-        console.log(`[${request.response_id}] [LLM] Processing ${request.interaction_type}...`);
-
         // 2. Build System Prompt with Voice Protocol (5 Lessons)
         let fullSystemPrompt = `## Advanced Voice Protocol:\n`;
         fullSystemPrompt += `- BREVITY: Keep responses under 15 words. Use direct sentences.\n`;
@@ -190,7 +188,7 @@ export class LlmOpenAiClient {
             messages[0].content = "Hola";
         }
 
-        console.log(`[${request.response_id}] [OpenAI] Querying ${this.model}... Payload: ${JSON.stringify(messages).substring(0, 300)}...`);
+        console.log(`[${request.response_id}] [OpenAI] Querying ${this.model}... Payload array depth: ${messages.length}, Last Message: ${JSON.stringify(messages[messages.length - 1])}`);
 
         // Anti-Silence Latency Filler: If LLM TTFT > 2s (e.g., ZAI from China), send a filler word to prevent Retell disconnect
         let firstTokenReceived = false;
@@ -230,12 +228,15 @@ export class LlmOpenAiClient {
                 const stream = await Promise.race([streamPromise, timeoutPromise]) as AsyncIterable<any>;
 
                 for await (const chunk of stream) {
-                    if (!firstTokenReceived) {
-                        firstTokenReceived = true;
-                        clearTimeout(latencyFillerTimeout);
+                    if (chunk.choices && chunk.choices.length > 0 && chunk.choices[0] === undefined) {
+                        console.log(`[ZAI DEBUG] Empty or malformed choice:`, JSON.stringify(chunk));
                     }
-                    const delta = chunk.choices[0]?.delta?.content;
+                    const delta = chunk.choices && chunk.choices[0]?.delta?.content;
                     if (delta) {
+                        if (!firstTokenReceived) {
+                            firstTokenReceived = true;
+                            clearTimeout(latencyFillerTimeout);
+                        }
                         ws.send(JSON.stringify({
                             response_type: "response",
                             response_id: request.response_id,
@@ -262,11 +263,11 @@ export class LlmOpenAiClient {
                 }, { signal: this.currentAbortController.signal });
 
                 for await (const event of stream) {
-                    if (!firstTokenReceived) {
-                        firstTokenReceived = true;
-                        clearTimeout(latencyFillerTimeout);
-                    }
                     if (event.type === 'content_block_delta' && (event.delta as any).text) {
+                        if (!firstTokenReceived) {
+                            firstTokenReceived = true;
+                            clearTimeout(latencyFillerTimeout);
+                        }
                         ws.send(JSON.stringify({
                             response_type: "response",
                             response_id: request.response_id,
@@ -295,7 +296,7 @@ export class LlmOpenAiClient {
                 return;
             }
 
-            console.error(`[${request.response_id}] [OpenAI] CRITICAL ERROR:`, {
+            console.error(`[${request.response_id}] [OpenAI] CRITICAL ERROR:`, err.name, err.message, {
                 message: err.message,
                 code: err.code,
                 status: err.status,
