@@ -63,9 +63,10 @@ export class LlmOpenAiClient {
                 this.provider = data.provider || "openai";
 
                 if (this.provider === "zai") {
-                    if (this.model === "glm-4.7") this.model = "glm-4.7-flash";
-                    if (this.model === "GLM-4.7-Flash") this.model = "glm-4.7-flash";
-                    if (this.model === "GLM-4.7-FlashX") this.model = "glm-4.7-flash";
+                    if (this.model.toLowerCase() === "glm-4.7") this.model = "GLM-4.7-Flash";
+                    if (this.model.toLowerCase() === "glm-4.7-flash") this.model = "GLM-4.7-Flash";
+                    if (this.model.toLowerCase() === "glm-4.7-flashx") this.model = "GLM-4.7-FlashX";
+                    if (this.model.toLowerCase() === "glm-5") this.model = "glm-5";
                 }
                 this.temperature = 0; // Enforced for voice consistency
                 this.maxTokens = data.max_tokens || 400;
@@ -189,6 +190,23 @@ export class LlmOpenAiClient {
 
         console.log(`[${request.response_id}] [OpenAI] Querying ${this.model}... Payload: ${JSON.stringify(messages).substring(0, 300)}...`);
 
+        // Anti-Silence Latency Filler: If LLM TTFT > 2s (e.g., ZAI from China), send a filler word to prevent Retell disconnect
+        let firstTokenReceived = false;
+        const latencyFillerTimeout = setTimeout(() => {
+            if (!firstTokenReceived && ws.readyState === WebSocket.OPEN) {
+                console.log(`[${request.response_id}] [LLM] High latency detected (>2s). Sending filler word to hold Retell connection...`);
+                const fillers = ["Mmm... ", "Pues... ", "A ver... ", "Eh... "];
+                const randomFiller = fillers[Math.floor(Math.random() * fillers.length)];
+                ws.send(JSON.stringify({
+                    response_type: "response",
+                    response_id: request.response_id,
+                    content: randomFiller,
+                    content_complete: false,
+                    end_call: false,
+                }));
+            }
+        }, 2000);
+
         try {
             if (this.provider === "openai" || this.provider === "deepseek" || this.provider === "zai") {
                 if (!this.openaiClient) throw new Error(`No se ha configurado la API Key para ${this.provider}.`);
@@ -209,11 +227,10 @@ export class LlmOpenAiClient {
 
                 const stream = await Promise.race([streamPromise, timeoutPromise]) as AsyncIterable<any>;
 
-                let chunkCount = 0;
                 for await (const chunk of stream) {
-                    chunkCount++;
-                    if (chunkCount <= 2) {
-                        console.log(`[${request.response_id}] [ZAI STREAM CHUNK DEBUG ${chunkCount}]:`, JSON.stringify(chunk));
+                    if (!firstTokenReceived) {
+                        firstTokenReceived = true;
+                        clearTimeout(latencyFillerTimeout);
                     }
                     const delta = chunk.choices[0]?.delta?.content;
                     if (delta) {
@@ -243,6 +260,10 @@ export class LlmOpenAiClient {
                 }, { signal: this.currentAbortController.signal });
 
                 for await (const event of stream) {
+                    if (!firstTokenReceived) {
+                        firstTokenReceived = true;
+                        clearTimeout(latencyFillerTimeout);
+                    }
                     if (event.type === 'content_block_delta' && (event.delta as any).text) {
                         ws.send(JSON.stringify({
                             response_type: "response",
@@ -256,6 +277,7 @@ export class LlmOpenAiClient {
             }
 
             // Common End of stream
+            clearTimeout(latencyFillerTimeout);
             ws.send(JSON.stringify({
                 response_type: "response",
                 response_id: request.response_id,
@@ -264,6 +286,7 @@ export class LlmOpenAiClient {
                 end_call: false,
             }));
         } catch (err: any) {
+            clearTimeout(latencyFillerTimeout);
             // Ignore abort errors silently, as this means we purposely cancelled to make a new request
             if (err.name === 'AbortError' || (err.message && err.message.includes('abort'))) {
                 console.log(`[${request.response_id}] [LLM] Request aborted intentionally.`);
