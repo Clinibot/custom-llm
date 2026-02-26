@@ -88,7 +88,7 @@ export class LlmOpenAiClient {
                     console.log(`[${agentId}] 🧠 Brain: Z.AI (GLM) | Model: ${this.model}`);
                     this.openaiClient = new OpenAI({
                         apiKey: data.openai_api_key,
-                        baseURL: "https://open.bigmodel.cn/api/paas/v4/"
+                        baseURL: "https://api.z.ai/v1/"
                     });
                 } else {
                     console.warn(`[${agentId}] ⚠️ WARNING: Proveedor [${this.provider}] seleccionado pero NO se encontró API Key válida en Supabase.`);
@@ -185,13 +185,21 @@ export class LlmOpenAiClient {
             if (this.provider === "openai" || this.provider === "deepseek" || this.provider === "zai") {
                 if (!this.openaiClient) throw new Error(`No se ha configurado la API Key para ${this.provider}.`);
 
-                const stream = await this.openaiClient.chat.completions.create({
+                // Implement a hard timeout for stream creation to prevent unhandled hang-ups 
+                // especially useful for ZAI Chinese servers which can take 5s+ occasionally
+                const streamPromise = this.openaiClient.chat.completions.create({
                     model: this.model as any,
                     messages: messages,
                     temperature: this.temperature,
                     max_tokens: this.maxTokens,
                     stream: true,
                 });
+
+                const timeoutPromise = new Promise((_, reject) =>
+                    setTimeout(() => reject(new Error("Timeout de conexión con el proveedor AI (ZAI/OpenAI).")), 7000)
+                );
+
+                const stream = await Promise.race([streamPromise, timeoutPromise]) as AsyncIterable<any>;
 
                 for await (const chunk of stream) {
                     const delta = chunk.choices[0]?.delta?.content;
