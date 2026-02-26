@@ -260,10 +260,16 @@ export class LlmOpenAiClient {
             });
 
             if (ws.readyState === WebSocket.OPEN) {
+                let errorMessage = `Lo siento, tengo un problema técnico momentáneo. (Error: ${err.message || 'Unknown'})`;
+
+                if (err.status === 429) {
+                    errorMessage = "Lo siento, acabo de informar al administrador de que se ha agotado el saldo o el límite de la API.";
+                }
+
                 ws.send(JSON.stringify({
                     response_type: "response",
                     response_id: request.response_id,
-                    content: `Lo siento, tengo un problema técnico momentáneo. (Error: ${err.message || 'Unknown'})`,
+                    content: errorMessage,
                     content_complete: true,
                     end_call: false,
                 }));
