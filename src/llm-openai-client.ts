@@ -63,9 +63,9 @@ export class LlmOpenAiClient {
                 this.provider = data.provider || "openai";
 
                 if (this.provider === "zai") {
-                    if (this.model === "glm-4.7") this.model = "GLM-4.7-Flash";
-                    if (this.model === "glm-4.7-flash") this.model = "GLM-4.7-Flash";
-                    if (this.model === "glm-4-flash") this.model = "GLM-4.7-Flash"; // Force upgrade legacy 4-flash to 4.7-flash to fix 400 error
+                    if (this.model === "glm-4.7") this.model = "glm-4.7-flash";
+                    if (this.model === "GLM-4.7-Flash") this.model = "glm-4.7-flash";
+                    if (this.model === "GLM-4.7-FlashX") this.model = "glm-4.7-flash";
                 }
                 this.temperature = 0; // Enforced for voice consistency
                 this.maxTokens = data.max_tokens || 400;
@@ -204,7 +204,7 @@ export class LlmOpenAiClient {
                 }, { signal: this.currentAbortController.signal });
 
                 const timeoutPromise = new Promise((_, reject) =>
-                    setTimeout(() => reject(new Error("Timeout de conexión con el proveedor AI (ZAI/OpenAI).")), 7000)
+                    setTimeout(() => reject(new Error("Timeout de conexión con el proveedor AI (ZAI/OpenAI).")), 15000)
                 );
 
                 const stream = await Promise.race([streamPromise, timeoutPromise]) as AsyncIterable<any>;
