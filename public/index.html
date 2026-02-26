@@ -116,6 +116,7 @@
                     <option value="openai">OpenAI (GPT)</option>
                     <option value="anthropic">Anthropic (Claude)</option>
                     <option value="deepseek">DeepSeek (Potente/Económico)</option>
+                    <option value="zai">Z.AI (GLM-4.7/5)</option>
                 </select>
             </div>
 
@@ -136,6 +137,10 @@
                     <div id="anthropicKeyField" class="field hidden">
                         <label>Anthropic API Key</label>
                         <input type="password" id="anthropicApiKey" placeholder="sk-ant-...">
+                    </div>
+                    <div id="zaiKeyField" class="field hidden">
+                        <label>Z.AI API Key</label>
+                        <input type="password" id="zaiApiKey" placeholder="Your Z.AI API Key">
                     </div>
                     <div id="deepseekKeyField" class="field hidden">
                         <div
@@ -397,6 +402,7 @@
                 document.getElementById('language').value = agent.language || 'Spanish';
                 document.getElementById('openaiApiKey').value = agent.openai_api_key || '';
                 document.getElementById('anthropicApiKey').value = agent.anthropic_api_key || '';
+                document.getElementById('zaiApiKey').value = agent.zai_api_key || '';
                 // DeepSeek uses openaiApiKey slot/logic for simplicity in this proto, or we can map it
                 if (agent.provider === 'deepseek') document.getElementById('deepseekApiKey').value = agent.openai_api_key || '';
 
@@ -430,6 +436,7 @@
             document.getElementById('language').value = 'Spanish';
             document.getElementById('openaiApiKey').value = '';
             document.getElementById('anthropicApiKey').value = '';
+            document.getElementById('zaiApiKey').value = '';
             document.getElementById('deepseekApiKey').value = '';
             document.getElementById('retellApiKey').value = '';
 
@@ -460,6 +467,7 @@
                 language: document.getElementById('language').value,
                 openai_api_key: document.getElementById('provider').value === 'openai' ? document.getElementById('openaiApiKey').value : (document.getElementById('provider').value === 'deepseek' ? document.getElementById('deepseekApiKey').value : ''),
                 anthropic_api_key: document.getElementById('provider').value === 'anthropic' ? document.getElementById('anthropicApiKey').value : '',
+                zai_api_key: document.getElementById('provider').value === 'zai' ? document.getElementById('zaiApiKey').value : '',
                 retell_api_key: document.getElementById('retellApiKey').value,
             };
 
@@ -533,6 +541,10 @@
             deepseek: [
                 { val: 'deepseek-chat', label: 'DeepSeek V3 (Económico)' },
                 { val: 'deepseek-reasoner', label: 'DeepSeek R1 (Razonamiento)' }
+            ],
+            zai: [
+                { val: 'glm-5', label: 'GLM 5 (Último/Potente)' },
+                { val: 'glm-4.7', label: 'GLM 4.7' }
             ]
         };
 
@@ -543,6 +555,7 @@
             document.getElementById('openaiKeyField').classList.toggle('hidden', provider !== 'openai');
             document.getElementById('anthropicKeyField').classList.toggle('hidden', provider !== 'anthropic');
             document.getElementById('deepseekKeyField').classList.toggle('hidden', provider !== 'deepseek');
+            document.getElementById('zaiKeyField').classList.toggle('hidden', provider !== 'zai');
 
             // Update model list
             const modelSelect = document.getElementById('model');
