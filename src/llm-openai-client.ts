@@ -70,7 +70,7 @@ export class LlmOpenAiClient {
                     if (this.model.toLowerCase() === "glm-4.5") this.model = "GLM-4.5";
                     if (this.model.toLowerCase() === "glm-5") this.model = "glm-5";
                 }
-                this.temperature = 0; // Enforced for voice consistency
+                this.temperature = 0.2; // Enforced for voice consistency, but non-zero to prevent API errors on certain models
                 this.maxTokens = data.max_tokens || 400;
                 this.reminderText = data.reminder_text || "";
                 this.language = data.language || "es";
@@ -224,7 +224,7 @@ export class LlmOpenAiClient {
                 }, { signal: this.currentAbortController.signal });
 
                 const timeoutPromise = new Promise((_, reject) =>
-                    setTimeout(() => reject(new Error("Timeout de conexión con el proveedor AI (ZAI/OpenAI).")), 15000)
+                    setTimeout(() => reject(new Error("Timeout de conexión con el proveedor AI (ZAI/OpenAI).")), 60000)
                 );
 
                 const stream = await Promise.race([streamPromise, timeoutPromise]) as AsyncIterable<any>;
