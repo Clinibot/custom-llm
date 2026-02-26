@@ -249,11 +249,14 @@ app.post("/api/agents", async (req: Request, res: Response) => {
         const userId = (req as any).userId;
         if (!userId) return res.status(401).json({ error: "Login required" });
 
+        const agentPayload = { ...agent };
+        delete (agentPayload as any).zai_api_key; // Strip virtual properties before DB entry
+
         const { data, error } = await supabase
             .from("agents")
             .upsert({
-                ...agent,
-                id: agent.id || undefined,
+                ...agentPayload,
+                id: agentPayload.id || undefined,
                 user_id: userId
             })
             .select()
