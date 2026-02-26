@@ -401,14 +401,24 @@
                 document.getElementById('maxTokens').value = agent.max_tokens || 400;
                 document.getElementById('reminderText').value = agent.reminder_text || '';
                 document.getElementById('language').value = agent.language || 'Spanish';
-                document.getElementById('openaiApiKey').value = agent.openai_api_key || '';
-                document.getElementById('anthropicApiKey').value = agent.anthropic_api_key || '';
-                document.getElementById('zaiApiKey').value = '';
-                // DeepSeek uses openaiApiKey slot/logic for simplicity in this proto, or we can map it
-                if (agent.provider === 'deepseek') document.getElementById('deepseekApiKey').value = agent.openai_api_key || '';
-                if (agent.provider === 'zai') document.getElementById('zaiApiKey').value = agent.openai_api_key || '';
+                const cachedOpenAI = localStorage.getItem('customllm_openaiApiKey') || '';
+                const cachedAnthropic = localStorage.getItem('customllm_anthropicApiKey') || '';
+                const cachedZai = localStorage.getItem('customllm_zaiApiKey') || '';
+                const cachedDeepseek = localStorage.getItem('customllm_deepseekApiKey') || '';
+                const cachedRetell = localStorage.getItem('customllm_retellApiKey') || '';
 
-                document.getElementById('retellApiKey').value = agent.retell_api_key || '';
+                document.getElementById('anthropicApiKey').value = agent.anthropic_api_key || cachedAnthropic;
+                document.getElementById('retellApiKey').value = agent.retell_api_key || cachedRetell;
+
+                // Load cached values first
+                document.getElementById('openaiApiKey').value = cachedOpenAI;
+                document.getElementById('deepseekApiKey').value = cachedDeepseek;
+                document.getElementById('zaiApiKey').value = cachedZai;
+
+                // Override with DB value if this agent was explicitly saved with this provider
+                if (agent.provider === 'openai') document.getElementById('openaiApiKey').value = agent.openai_api_key || cachedOpenAI;
+                if (agent.provider === 'deepseek') document.getElementById('deepseekApiKey').value = agent.openai_api_key || cachedDeepseek;
+                if (agent.provider === 'zai') document.getElementById('zaiApiKey').value = agent.openai_api_key || cachedZai;
 
                 const wsBase = window.location.origin.replace('http', 'ws');
                 document.getElementById('retellUrl').value = `${wsBase}/llm-websocket/{{call_id}}?agent_id=${agent.id}`;
@@ -436,11 +446,11 @@
             document.getElementById('maxTokens').value = 400;
             document.getElementById('reminderText').value = '';
             document.getElementById('language').value = 'Spanish';
-            document.getElementById('openaiApiKey').value = '';
-            document.getElementById('anthropicApiKey').value = '';
-            document.getElementById('zaiApiKey').value = '';
-            document.getElementById('deepseekApiKey').value = '';
-            document.getElementById('retellApiKey').value = '';
+            document.getElementById('openaiApiKey').value = localStorage.getItem('customllm_openaiApiKey') || '';
+            document.getElementById('anthropicApiKey').value = localStorage.getItem('customllm_anthropicApiKey') || '';
+            document.getElementById('zaiApiKey').value = localStorage.getItem('customllm_zaiApiKey') || '';
+            document.getElementById('deepseekApiKey').value = localStorage.getItem('customllm_deepseekApiKey') || '';
+            document.getElementById('retellApiKey').value = localStorage.getItem('customllm_retellApiKey') || '';
 
             document.getElementById('retellUrl').value = 'Guarda para generar URL';
             document.getElementById('agentMetadata').textContent = '';
@@ -469,7 +479,7 @@
                 language: document.getElementById('language').value,
                 openai_api_key: document.getElementById('provider').value === 'openai' ? document.getElementById('openaiApiKey').value :
                     (document.getElementById('provider').value === 'deepseek' ? document.getElementById('deepseekApiKey').value :
-                        (document.getElementById('provider').value === 'zai' ? document.getElementById('zaiApiKey').value : '')),
+                        (document.getElementById('provider').value === 'zai' ? document.getElementById('zaiApiKey').value : document.getElementById('openaiApiKey').value)),
                 anthropic_api_key: document.getElementById('provider').value === 'anthropic' ? document.getElementById('anthropicApiKey').value : '',
                 retell_api_key: document.getElementById('retellApiKey').value,
             };
@@ -580,6 +590,16 @@
         }
         document.getElementById('newAgentBtn').addEventListener('click', createNewAgent);
         document.getElementById('deleteBtn').addEventListener('click', deleteAgent);
+
+        // Auto-save keys to localStorage while typing
+        ['openaiApiKey', 'anthropicApiKey', 'deepseekApiKey', 'zaiApiKey', 'retellApiKey'].forEach(id => {
+            const el = document.getElementById(id);
+            if (el) {
+                el.addEventListener('input', (e) => {
+                    localStorage.setItem('customllm_' + id, e.target.value);
+                });
+            }
+        });
     </script>
 </body>
 
