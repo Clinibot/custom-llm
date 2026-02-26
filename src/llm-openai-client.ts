@@ -62,8 +62,9 @@ export class LlmOpenAiClient {
                 this.provider = data.provider || "openai";
 
                 if (this.provider === "zai") {
-                    if (this.model === "glm-4.7") this.model = "glm-4.7-flash";
-                    // If others are wrong we can map them here too
+                    if (this.model === "glm-4.7") this.model = "GLM-4.7-Flash";
+                    if (this.model === "glm-4.7-flash") this.model = "GLM-4.7-Flash";
+                    if (this.model === "glm-4-flash") this.model = "GLM-4.7-Flash"; // Force upgrade legacy 4-flash to 4.7-flash to fix 400 error
                 }
                 this.temperature = 0; // Enforced for voice consistency
                 this.maxTokens = data.max_tokens || 400;
