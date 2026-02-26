@@ -78,10 +78,10 @@ export class LlmOpenAiClient {
                         apiKey: data.openai_api_key,
                         baseURL: "https://api.deepseek.com"
                     });
-                } else if (this.provider === "zai" && data.zai_api_key) {
+                } else if (this.provider === "zai" && data.openai_api_key) {
                     console.log(`[${agentId}] 🧠 Brain: Z.AI (GLM) | Model: ${this.model}`);
                     this.openaiClient = new OpenAI({
-                        apiKey: data.zai_api_key,
+                        apiKey: data.openai_api_key,
                         baseURL: "https://api.z.ai/api/paas/v4/"
                     });
                 } else {
