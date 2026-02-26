@@ -388,6 +388,7 @@
             currentAgentId = id;
             try {
                 const res = await apiFetch(`/api/agents/${id}`);
+                if (!res.ok) throw new Error("Agent not found");
                 const agent = await res.json();
 
                 document.getElementById('agentName').value = agent.name;
