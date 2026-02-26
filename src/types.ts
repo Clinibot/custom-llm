@@ -106,7 +106,6 @@ export interface Agent {
     openai_api_key?: string;
     anthropic_api_key?: string;
     retell_api_key?: string;
-    zai_api_key?: string;
     language?: string;
     user_id?: string; // Link to Profile.id
 }

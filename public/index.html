@@ -402,9 +402,10 @@
                 document.getElementById('language').value = agent.language || 'Spanish';
                 document.getElementById('openaiApiKey').value = agent.openai_api_key || '';
                 document.getElementById('anthropicApiKey').value = agent.anthropic_api_key || '';
-                document.getElementById('zaiApiKey').value = agent.zai_api_key || '';
+                document.getElementById('zaiApiKey').value = '';
                 // DeepSeek uses openaiApiKey slot/logic for simplicity in this proto, or we can map it
                 if (agent.provider === 'deepseek') document.getElementById('deepseekApiKey').value = agent.openai_api_key || '';
+                if (agent.provider === 'zai') document.getElementById('zaiApiKey').value = agent.openai_api_key || '';
 
                 document.getElementById('retellApiKey').value = agent.retell_api_key || '';
 
@@ -465,9 +466,10 @@
                 max_tokens: parseInt(document.getElementById('maxTokens').value),
                 reminder_text: document.getElementById('reminderText').value,
                 language: document.getElementById('language').value,
-                openai_api_key: document.getElementById('provider').value === 'openai' ? document.getElementById('openaiApiKey').value : (document.getElementById('provider').value === 'deepseek' ? document.getElementById('deepseekApiKey').value : ''),
+                openai_api_key: document.getElementById('provider').value === 'openai' ? document.getElementById('openaiApiKey').value :
+                    (document.getElementById('provider').value === 'deepseek' ? document.getElementById('deepseekApiKey').value :
+                        (document.getElementById('provider').value === 'zai' ? document.getElementById('zaiApiKey').value : '')),
                 anthropic_api_key: document.getElementById('provider').value === 'anthropic' ? document.getElementById('anthropicApiKey').value : '',
-                zai_api_key: document.getElementById('provider').value === 'zai' ? document.getElementById('zaiApiKey').value : '',
                 retell_api_key: document.getElementById('retellApiKey').value,
             };
 
@@ -477,6 +479,10 @@
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(agent)
                 });
+
+                if (!res.ok) {
+                    throw new Error('Error de la respuesta de API');
+                }
 
                 const savedAgent = await res.json();
                 currentAgentId = savedAgent.id;
