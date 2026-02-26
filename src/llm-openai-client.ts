@@ -78,6 +78,12 @@ export class LlmOpenAiClient {
                         apiKey: data.openai_api_key,
                         baseURL: "https://api.deepseek.com"
                     });
+                } else if (this.provider === "zai" && data.zai_api_key) {
+                    console.log(`[${agentId}] 🧠 Brain: Z.AI (GLM) | Model: ${this.model}`);
+                    this.openaiClient = new OpenAI({
+                        apiKey: data.zai_api_key,
+                        baseURL: "https://api.z.ai/api/paas/v4/"
+                    });
                 } else {
                     console.warn(`[${agentId}] ⚠️ WARNING: Proveedor [${this.provider}] seleccionado pero NO se encontró API Key válida en Supabase.`);
                 }
@@ -170,7 +176,7 @@ export class LlmOpenAiClient {
         console.log(`[${request.response_id}] [OpenAI] Querying ${this.model}... Payload: ${JSON.stringify(messages).substring(0, 300)}...`);
 
         try {
-            if (this.provider === "openai" || this.provider === "deepseek") {
+            if (this.provider === "openai" || this.provider === "deepseek" || this.provider === "zai") {
                 if (!this.openaiClient) throw new Error(`No se ha configurado la API Key para ${this.provider}.`);
 
                 const stream = await this.openaiClient.chat.completions.create({

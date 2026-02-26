@@ -102,10 +102,11 @@ export interface Agent {
     max_tokens: number;
     reminder_text: string;
     // Multi-model support
-    provider?: "openai" | "anthropic" | "deepseek"; // Defaults to openai
+    provider?: "openai" | "anthropic" | "deepseek" | "zai"; // Defaults to openai
     openai_api_key?: string;
     anthropic_api_key?: string;
     retell_api_key?: string;
+    zai_api_key?: string;
     language?: string;
     user_id?: string; // Link to Profile.id
 }
