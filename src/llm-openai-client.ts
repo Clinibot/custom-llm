@@ -209,7 +209,12 @@ export class LlmOpenAiClient {
 
                 const stream = await Promise.race([streamPromise, timeoutPromise]) as AsyncIterable<any>;
 
+                let chunkCount = 0;
                 for await (const chunk of stream) {
+                    chunkCount++;
+                    if (chunkCount <= 2) {
+                        console.log(`[${request.response_id}] [ZAI STREAM CHUNK DEBUG ${chunkCount}]:`, JSON.stringify(chunk));
+                    }
                     const delta = chunk.choices[0]?.delta?.content;
                     if (delta) {
                         ws.send(JSON.stringify({
