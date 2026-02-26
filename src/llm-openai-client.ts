@@ -66,6 +66,8 @@ export class LlmOpenAiClient {
                     if (this.model.toLowerCase() === "glm-4.7") this.model = "GLM-4.7-Flash";
                     if (this.model.toLowerCase() === "glm-4.7-flash") this.model = "GLM-4.7-Flash";
                     if (this.model.toLowerCase() === "glm-4.7-flashx") this.model = "GLM-4.7-FlashX";
+                    if (this.model.toLowerCase() === "glm-4.6v-flashx") this.model = "GLM-4.6V-FlashX";
+                    if (this.model.toLowerCase() === "glm-4.5") this.model = "GLM-4.5";
                     if (this.model.toLowerCase() === "glm-5") this.model = "glm-5";
                 }
                 this.temperature = 0; // Enforced for voice consistency
