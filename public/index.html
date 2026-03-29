@@ -117,6 +117,7 @@
                     <option value="anthropic">Anthropic (Claude)</option>
                     <option value="deepseek">DeepSeek (Potente/Económico)</option>
                     <option value="zai">Z.AI (GLM-4.7/5)</option>
+                    <option value="gemini">Google Gemini (Live API)</option>
                 </select>
             </div>
 
@@ -141,6 +142,10 @@
                     <div id="zaiKeyField" class="field hidden">
                         <label>Z.AI API Key</label>
                         <input type="password" id="zaiApiKey" placeholder="Your Z.AI API Key">
+                    </div>
+                    <div id="googleKeyField" class="field hidden">
+                        <label>Google API Key (Gemini)</label>
+                        <input type="password" id="googleApiKey" placeholder="AIzaSy...">
                     </div>
                     <div id="deepseekKeyField" class="field hidden">
                         <div
@@ -404,6 +409,7 @@
                 const cachedOpenAI = localStorage.getItem('customllm_openaiApiKey') || '';
                 const cachedAnthropic = localStorage.getItem('customllm_anthropicApiKey') || '';
                 const cachedZai = localStorage.getItem('customllm_zaiApiKey') || '';
+                const cachedGoogle = localStorage.getItem('customllm_googleApiKey') || '';
                 const cachedDeepseek = localStorage.getItem('customllm_deepseekApiKey') || '';
                 const cachedRetell = localStorage.getItem('customllm_retellApiKey') || '';
 
@@ -414,11 +420,13 @@
                 document.getElementById('openaiApiKey').value = cachedOpenAI;
                 document.getElementById('deepseekApiKey').value = cachedDeepseek;
                 document.getElementById('zaiApiKey').value = cachedZai;
+                document.getElementById('googleApiKey').value = cachedGoogle;
 
                 // Override with DB value if this agent was explicitly saved with this provider
                 if (agent.provider === 'openai') document.getElementById('openaiApiKey').value = agent.openai_api_key || cachedOpenAI;
                 if (agent.provider === 'deepseek') document.getElementById('deepseekApiKey').value = agent.openai_api_key || cachedDeepseek;
                 if (agent.provider === 'zai') document.getElementById('zaiApiKey').value = agent.openai_api_key || cachedZai;
+                if (agent.provider === 'gemini') document.getElementById('googleApiKey').value = agent.google_api_key || cachedGoogle;
 
                 const wsBase = window.location.origin.replace('http', 'ws');
                 document.getElementById('retellUrl').value = `${wsBase}/llm-websocket/{{call_id}}?agent_id=${agent.id}`;
@@ -449,6 +457,7 @@
             document.getElementById('openaiApiKey').value = localStorage.getItem('customllm_openaiApiKey') || '';
             document.getElementById('anthropicApiKey').value = localStorage.getItem('customllm_anthropicApiKey') || '';
             document.getElementById('zaiApiKey').value = localStorage.getItem('customllm_zaiApiKey') || '';
+            document.getElementById('googleApiKey').value = localStorage.getItem('customllm_googleApiKey') || '';
             document.getElementById('deepseekApiKey').value = localStorage.getItem('customllm_deepseekApiKey') || '';
             document.getElementById('retellApiKey').value = localStorage.getItem('customllm_retellApiKey') || '';
 
@@ -480,6 +489,7 @@
                 openai_api_key: document.getElementById('provider').value === 'openai' ? document.getElementById('openaiApiKey').value :
                     (document.getElementById('provider').value === 'deepseek' ? document.getElementById('deepseekApiKey').value :
                         (document.getElementById('provider').value === 'zai' ? document.getElementById('zaiApiKey').value : document.getElementById('openaiApiKey').value)),
+                google_api_key: document.getElementById('googleApiKey').value,
                 anthropic_api_key: document.getElementById('provider').value === 'anthropic' ? document.getElementById('anthropicApiKey').value : '',
                 retell_api_key: document.getElementById('retellApiKey').value,
             };
@@ -566,6 +576,10 @@
                 { val: 'GLM-4.5', label: 'GLM 4.5' },
                 { val: 'GLM-4.7-FlashX', label: 'GLM 4.7 FlashX' },
                 { val: 'glm-4-flash', label: 'GLM 4 Flash (Gratis)' }
+            ],
+            gemini: [
+                { val: 'gemini-3.1-flash-live-preview', label: 'Gemini 3.1 Flash Live (Preview)' },
+                { val: 'gemini-2.0-flash-exp', label: 'Gemini 2.0 Flash (Experimental)' }
             ]
         };
 
@@ -577,6 +591,7 @@
             document.getElementById('anthropicKeyField').classList.toggle('hidden', provider !== 'anthropic');
             document.getElementById('deepseekKeyField').classList.toggle('hidden', provider !== 'deepseek');
             document.getElementById('zaiKeyField').classList.toggle('hidden', provider !== 'zai');
+            document.getElementById('googleKeyField').classList.toggle('hidden', provider !== 'gemini');
 
             // Update model list
             const modelSelect = document.getElementById('model');
@@ -595,7 +610,7 @@
         document.getElementById('deleteBtn').addEventListener('click', deleteAgent);
 
         // Auto-save keys to localStorage while typing
-        ['openaiApiKey', 'anthropicApiKey', 'deepseekApiKey', 'zaiApiKey', 'retellApiKey'].forEach(id => {
+        ['openaiApiKey', 'anthropicApiKey', 'deepseekApiKey', 'zaiApiKey', 'googleApiKey', 'retellApiKey'].forEach(id => {
             const el = document.getElementById(id);
             if (el) {
                 el.addEventListener('input', (e) => {

@@ -120,7 +120,7 @@ export class LlmOpenAiClient {
             return;
         }
 
-        const WS_URL = `wss://generativelanguage.googleapis.com/ws/google.ai.generativelanguage.v1beta.GenerativeService.BidiGenerateContent?key=${this.googleApiKey}`;
+        const WS_URL = `wss://generativelanguage.googleapis.com/ws/google.ai.generativelanguage.v1alpha.GenerativeService.BidiGenerateContent?key=${this.googleApiKey}`;
         
         return new Promise((resolve, reject) => {
             this.geminiWs = new WebSocket(WS_URL);
@@ -129,7 +129,7 @@ export class LlmOpenAiClient {
                 console.log(`[${this.agentId}] ✅ Gemini WebSocket Connected.`);
                 const configMessage = {
                     setup: {
-                        model: `models/${this.model || "gemini-2.0-flash-exp"}`,
+                        model: `models/gemini-3.1-flash-live-preview`,
                         generation_config: {
                           response_modalities: ["TEXT"]
                         },
