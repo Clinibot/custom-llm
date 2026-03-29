@@ -24,6 +24,8 @@ export class LlmOpenAiClient {
     private language: string = "Spanish";
     private supabase: any;
     private currentAbortController: AbortController | null = null;
+    private geminiWs: WebSocket | null = null;
+    private googleApiKey: string = "";
 
     constructor() {
         this.openaiClient = null;
@@ -94,6 +96,10 @@ export class LlmOpenAiClient {
                         apiKey: data.openai_api_key,
                         baseURL: "https://open.bigmodel.cn/api/paas/v4/"
                     });
+                } else if (this.provider === "gemini") {
+                    this.googleApiKey = data.google_api_key || process.env.GOOGLE_API_KEY || "";
+                    console.log(`[${agentId}] 🧠 Brain: Gemini Live | Model: ${this.model}`);
+                    await this.connectToGemini();
                 } else {
                     console.warn(`[${agentId}] ⚠️ WARNING: Proveedor [${this.provider}] seleccionado pero NO se encontró API Key válida en Supabase.`);
                 }
@@ -103,6 +109,48 @@ export class LlmOpenAiClient {
         } catch (err) {
             console.log("Error loading config:", err);
         }
+    }
+
+    /**
+     * Establish WebSocket connection to Gemini Live API.
+     */
+    async connectToGemini(): Promise<void> {
+        if (!this.googleApiKey) {
+            console.error(`[${this.agentId}] ❌ Gemini API Key missing.`);
+            return;
+        }
+
+        const WS_URL = `wss://generativelanguage.googleapis.com/ws/google.ai.generativelanguage.v1beta.GenerativeService.BidiGenerateContent?key=${this.googleApiKey}`;
+        
+        return new Promise((resolve, reject) => {
+            this.geminiWs = new WebSocket(WS_URL);
+
+            this.geminiWs.on("open", () => {
+                console.log(`[${this.agentId}] ✅ Gemini WebSocket Connected.`);
+                const configMessage = {
+                    setup: {
+                        model: `models/${this.model || "gemini-2.0-flash-exp"}`,
+                        generation_config: {
+                          response_modalities: ["TEXT"]
+                        },
+                        system_instruction: {
+                            parts: [{ text: `## Advanced Voice Protocol:\n- BREVITY: Keep responses under 15 words. Use direct sentences.\n- TURNS: Be concise to encourage a fast back-and-forth.\n\n## User System Prompt:\n${this.systemPrompt}` }]
+                        }
+                    }
+                };
+                this.geminiWs?.send(JSON.stringify(configMessage));
+                resolve();
+            });
+
+            this.geminiWs.on("error", (err) => {
+                console.error(`[${this.agentId}] ❌ Gemini WebSocket Error:`, err);
+                reject(err);
+            });
+
+            this.geminiWs.on("close", () => {
+                console.log(`[${this.agentId}] 🔻 Gemini WebSocket Closed.`);
+            });
+        });
     }
 
 
@@ -277,6 +325,99 @@ export class LlmOpenAiClient {
                         }));
                     }
                 }
+            } else if (this.provider === "gemini") {
+                if (!this.geminiWs || this.geminiWs.readyState !== WebSocket.OPEN) {
+                    await this.connectToGemini();
+                }
+
+                if (!this.geminiWs) throw new Error("Could not connect to Gemini Live API.");
+
+                // Map transcripts to Gemini format
+                const lastUserMessage = request.transcript?.[request.transcript.length - 1]?.content || "";
+                
+                const textMessage = {
+                    realtime_input: {
+                        media_chunks: [{
+                            data: Buffer.from(lastUserMessage).toString("base64"),
+                            mime_type: "text/plain"
+                        }]
+                    }
+                };
+
+                // Gemini Live expects a specific input format for text if we use it this way, 
+                // but actually, the Bidi API often prefers audio or tool calls.
+                // According to the docs, for text input we use:
+                const textInput = {
+                    realtime_input: {
+                        media_chunks: [] // Usually for audio/video
+                    }
+                };
+                
+                // Let's use the standard text input if supported, according to the doc line 618:
+                // { "realtimeInput": { "text": text } }
+                const geminiInput = {
+                    realtime_input: {
+                        media_chunks: [
+                            {
+                                data: Buffer.from(lastUserMessage).toString("base64"),
+                                mime_type: "text/plain"
+                            }
+                        ]
+                    }
+                };
+                
+                // Wait, the doc says line 618: 
+                // BidiGenerateContentRealtimeInput with text field.
+                const simpleTextInput = {
+                   realtime_input: {
+                       text: lastUserMessage
+                   }
+                };
+
+                this.geminiWs.send(JSON.stringify(simpleTextInput));
+
+                // Handle Gemini responses in a streaming way
+                return new Promise((resolve, reject) => {
+                    const messageHandler = (data: any) => {
+                        const response = JSON.parse(data.toString());
+                        
+                        // Handle serverContent (transcriptions/audio)
+                        if (response.server_content) {
+                            const modelTurn = response.server_content.model_turn;
+                            if (modelTurn && modelTurn.parts) {
+                                for (const part of modelTurn.parts) {
+                                    if (part.text) {
+                                        if (!firstTokenReceived) {
+                                            firstTokenReceived = true;
+                                            clearTimeout(latencyFillerTimeout);
+                                        }
+                                        ws.send(JSON.stringify({
+                                            response_type: "response",
+                                            response_id: request.response_id,
+                                            content: part.text,
+                                            content_complete: false,
+                                            end_call: false,
+                                        }));
+                                    }
+                                }
+                            }
+                            
+                            // Check if turn is complete
+                            if (response.server_content.turn_complete) {
+                                this.geminiWs?.off("message", messageHandler);
+                                resolve();
+                            }
+                        }
+                    };
+
+                    this.geminiWs?.on("message", messageHandler);
+                    
+                    // Set a safety timeout for the response
+                    setTimeout(() => {
+                        this.geminiWs?.off("message", messageHandler);
+                        resolve();
+                    }, 15000);
+                });
             }
 
             // Common End of stream
